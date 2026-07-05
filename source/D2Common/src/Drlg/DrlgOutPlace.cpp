@@ -721,11 +721,13 @@ void __fastcall DRLGOUTPLACE_PlaceAct1245OutdoorBorders(D2DrlgLevelStrc* pLevel)
 	pNextVertex = pDrlgVertex->pNext;
 
 	D2DrlgOutdoorPackedGrid2InfoStrc tLvlPrestPackedInfo{ 0 };
-	tLvlPrestPackedInfo.nUnkb00 = true;
-	tLvlPrestPackedInfo.bHasDirection = pDrlgVertex->nDirection != 0;
 
 	do
 	{
+		tLvlPrestPackedInfo.nPackedValue = 0;
+		tLvlPrestPackedInfo.nUnkb00 = true;
+		tLvlPrestPackedInfo.bHasDirection = pDrlgVertex->nDirection != 0;
+
 		DRLGVER_GetCoordDiff(pDrlgVertex, &nCurrentDiffX, &nCurrentDiffY);
 		DRLGVER_GetCoordDiff(pNextVertex, &nNextDiffX, &nNextDiffY);
 
@@ -893,13 +895,12 @@ void __fastcall DRLGOUTPLACE_PlaceAct1245OutdoorBorders(D2DrlgLevelStrc* pLevel)
 		}
 
 		nDirection = pDrlgVertex->nDirection;
-		if (nDirection)
-		{
-			tLvlPrestPackedInfo.bHasDirection = true;
-		}
-		else
+		if (nDirection == 0)
 		{
 			nDirection = pNextVertex->nDirection;
+		}
+		if (nDirection)
+		{
 			tLvlPrestPackedInfo.bHasDirection = true;
 		}
 
