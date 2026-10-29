@@ -7,7 +7,7 @@
 struct D2WinTimerStrc
 {
 	D2WinControlStrc controlHeader;					//0x00
-	uint32_t nTimeout;								//0x40
+	uint32_t nTimeout;								//0x40 seconds; milliseconds after TIMER_SetRepeating
 	uint32_t dwTickCount;							//0x44
 };
 #pragma pack(pop)
