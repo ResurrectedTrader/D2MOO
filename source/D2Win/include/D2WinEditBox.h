@@ -60,16 +60,13 @@ D2WinEditBoxStrc* __fastcall D2Win_10070_EDITBOX_Create(int32_t nX, int32_t nY, 
 int __fastcall D2Win_10071_EDITBOX_Destroy(D2WinEditBoxStrc* pEditBox);
 //D2Win.0x6F8A6E10
 //1.14d: 0x004FDAD0
-// Sets the key filter
-void __fastcall D2Win_10072(D2WinEditBoxStrc* pEditBox, EditBoxKeyFilterCallback pfKeyFilter);
+void __fastcall D2Win_10072_EDITBOX_SetKeyFilter(D2WinEditBoxStrc* pEditBox, EditBoxKeyFilterCallback pfKeyFilter);
 //D2Win.0x6F8A6E60
 //1.14d: 0x004FDB00
-// Sets the change callback
-void __fastcall D2Win_10073(D2WinEditBoxStrc* pEditBox, EditBoxChangeCallback pfOnChange);
+void __fastcall D2Win_10073_EDITBOX_SetChangeCallback(D2WinEditBoxStrc* pEditBox, EditBoxChangeCallback pfOnChange);
 //D2Win.0x6F8A6EB0
 //1.14d: 0x004FDCC0
-// Clears the selection
-void __fastcall D2Win_10083(D2WinEditBoxStrc* pEditBox);
+void __fastcall D2Win_10083_EDITBOX_ClearSelection(D2WinEditBoxStrc* pEditBox);
 //D2Win.0x6F8A6F10
 //1.14d: 0x004FDD00
 int __fastcall D2Win_10082(D2WinEditBoxStrc* pEditBox);
@@ -81,19 +78,18 @@ int32_t __fastcall D2Win_10074(D2WinEditBoxStrc* pEditBox, uint8_t a2);
 void __fastcall sub_6F8A7970(D2WinEditBoxStrc* pEditBox);
 //D2Win.0x6F8A7AB0
 //1.14d: 0x004FF050
-// WM_KEYDOWN of the focused box (D2Win_10023)
-int __fastcall sub_6F8A7AB0(D2WinEditBoxStrc* pEditBox, char a2);
+// WM_KEYDOWN of the focused box
+int __fastcall EDITBOX_HandleKeyDown(D2WinEditBoxStrc* pEditBox, char a2);
 //D2Win.0x6F8A80A0
 //1.14d: 0x004FDD50
-// Sets the max length (nMaxLength)
-void __fastcall D2Win_10081(D2WinEditBoxStrc* pEditBox, int32_t a2);
+void __fastcall D2Win_10081_EDITBOX_SetMaxLength(D2WinEditBoxStrc* pEditBox, int32_t nMaxLength);
 //D2Win.0x6F8A80F0
 //1.14d: 0x004FFE10
 int __fastcall D2Win_10076(D2WinEditBoxStrc* pEditBox, const char* szText);
 //D2Win.0x6F8A8140
 //1.14d: 0x004FF5A0
-// Sets the text and puts the caret at its end; runs pfOnChange, not pfKeyFilter
-int __fastcall D2Win_10075(D2WinEditBoxStrc* pEditBox, const Unicode* pText);
+// Runs pfOnChange, not pfKeyFilter
+int __fastcall D2Win_10075_EDITBOX_SetTextAndMoveCaretToEnd(D2WinEditBoxStrc* pEditBox, const Unicode* pText);
 //D2Win.0x6F8A81E0
 //1.14d: 0x004FDD90
 const Unicode* __fastcall D2Win_10077_EDITBOX_GetText(D2WinEditBoxStrc* pEditBox);
@@ -102,27 +98,24 @@ const Unicode* __fastcall D2Win_10077_EDITBOX_GetText(D2WinEditBoxStrc* pEditBox
 void __fastcall D2Win_10080_EDITBOX_SetNextEditBox(D2WinEditBoxStrc* pEditBox, D2WinEditBoxStrc* pNext);
 //D2Win.0x6F8A82D0
 //1.14d: 0x004FFE50
-// pfDraw of a single-line box
-int32_t __fastcall sub_6F8A82D0(D2WinControlStrc* pControl);
+int32_t __fastcall EDITBOX_DrawSingleLine(D2WinControlStrc* pControl);
 //D2Win.0x6F8A86C0
 //1.14d: 0x004FF620
-// pfDraw of a multi-line box (EDITBOX_MULTILINE)
-int32_t __fastcall sub_6F8A86C0(D2WinControlStrc* pControl);
+int32_t __fastcall EDITBOX_DrawMultiLine(D2WinControlStrc* pControl);
 //D2Win.0x6F8A8D60
 //1.14d: 0x004FDFF0
-// Caret position in box coordinates (-1, -1 when it is not on a visible line)
-void __fastcall sub_6F8A8D60(D2WinEditBoxStrc* pEditBox, int32_t* a2, int32_t* a3);
+// In box coordinates; (-1, -1) when the caret is not on a visible line
+void __fastcall EDITBOX_GetCaretPosition(D2WinEditBoxStrc* pEditBox, int32_t* pX, int32_t* pY);
 //D2Win.0x6F8A9120
 //1.14d: 0x004FFBF0
-// pfHandleMouseDown of a single-line box
-int __stdcall sub_6F8A9120(SMSGHANDLER_PARAMS* pMsg);
+int __stdcall EDITBOX_HandleSingleLineMouseDown(SMSGHANDLER_PARAMS* pMsg);
 //D2Win.0x6F8A93A0
 //1.14d: 0x004FE350
 int __stdcall EDITBOX_HandleMouseUp(SMSGHANDLER_PARAMS* pMsg);
 //D2Win.0x6F8A9410
 //1.14d: 0x004FE3B0
-// Places the caret at (nX, nY) in box coordinates of a multi-line box
-int32_t __fastcall sub_6F8A9410(SMSGHANDLER_PARAMS* pMsg, int32_t nX, int32_t nY);
+// (nX, nY) in box coordinates
+int32_t __fastcall EDITBOX_PlaceMultiLineCaret(SMSGHANDLER_PARAMS* pMsg, int32_t nX, int32_t nY);
 //D2Win.0x6F8A97D0
 //1.14d: 0x004FE710
 int __stdcall sub_6F8A97D0(SMSGHANDLER_PARAMS* pMsg);

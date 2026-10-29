@@ -17,7 +17,7 @@
 D2WinPopUpStrc* gpPopUp;
 
 
-// A popup menu at the mouse position (replaces the previous one); POPUP_AddLine adds its lines
+// At the mouse position, replacing the previous one
 //D2Win.0x6F8AEAE0 (#10094)
 //1.14d: 0x005088C0
 void __stdcall POPUP_Create()
@@ -31,7 +31,7 @@ void __stdcall POPUP_Create()
 	pPopUp->controlHeader.nImageX = gMousePosition_6F8FE234.x;
 	pPopUp->controlHeader.nImageY = gMousePosition_6F8FE234.y;
 	pPopUp->controlHeader.pfDraw = POPUP_Draw;
-	pPopUp->controlHeader.pfInitialize = POPUP_Initialize;
+	pPopUp->controlHeader.pfUpdate = POPUP_UpdateHoveredLine;
 	pPopUp->nCurrentLine = -1;
 
 	CONTROL_AppendToList(&pPopUp->controlHeader);
@@ -97,7 +97,6 @@ int32_t __stdcall POPUP_AddLine(D2WinPopUpLineStrc* pPopUpLine)
 	return 1;
 }
 
-// From the mouse button handler (press and release): runs the hovered line's callback
 //D2Win.0x6F8AECA0
 //1.14d: 0x005086A0
 int32_t __stdcall POPUP_HandleMouseButtonInput(SMSGHANDLER_PARAMS* pMsg)
@@ -127,10 +126,9 @@ int32_t __stdcall POPUP_HandleMouseButtonInput(SMSGHANDLER_PARAMS* pMsg)
 	return 1;
 }
 
-// Per frame: finds the hovered line
 //D2Win.0x6F8AED10
 //1.14d: 0x00508710
-int32_t __fastcall POPUP_Initialize(D2WinControlStrc* pControl)
+int32_t __fastcall POPUP_UpdateHoveredLine(D2WinControlStrc* pControl)
 {
 	D2WinPopUpStrc* pPopUp = (D2WinPopUpStrc*)pControl;
 

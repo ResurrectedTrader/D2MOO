@@ -33,7 +33,6 @@ struct D2CofNodeStrc
 	D2CofNodeStrc* pPrev;
 };
 
-// A unit's reference to a COF node
 struct D2CofInfoStrc
 {
 	D2CofNodeStrc* pCofNode;

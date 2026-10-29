@@ -35,7 +35,7 @@ D2WinSmackStrc* __fastcall SMACK_Create(int32_t nX, int32_t nY, int32_t nWidth, 
 
 	pSmack->controlHeader.nType = D2WIN_SMACK;
 	pSmack->controlHeader.dwFlags |= gdwBitMasks[0] | gdwBitMasks[2];
-	pSmack->controlHeader.field_34 = a5;
+	pSmack->controlHeader.pfCallback = a5;
 	pSmack->controlHeader.nImageX = nX;
 	pSmack->controlHeader.nImageY = nY;
 	pSmack->controlHeader.nWidth = nWidth;
@@ -142,12 +142,12 @@ int32_t __stdcall SMACK_HandleMouseDown(SMSGHANDLER_PARAMS* pMsg)
 
 	D2_ASSERT(pSmack->controlHeader.nType == D2WIN_SMACK);
 
-	if (!(pSmack->controlHeader.dwFlags & gdwBitMasks[2]) || !(pSmack->controlHeader.dwFlags & gdwBitMasks[0]) || !pSmack->controlHeader.field_34)
+	if (!(pSmack->controlHeader.dwFlags & gdwBitMasks[2]) || !(pSmack->controlHeader.dwFlags & gdwBitMasks[0]) || !pSmack->controlHeader.pfCallback)
 	{
 		return 0;
 	}
 
-	return pSmack->controlHeader.field_34(pMsg);
+	return pSmack->controlHeader.pfCallback(pMsg);
 }
 
 //D2Win.0x6F8AFA90 (#10208)
