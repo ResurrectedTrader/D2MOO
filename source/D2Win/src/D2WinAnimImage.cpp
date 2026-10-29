@@ -18,7 +18,7 @@
 
 //D2Win.0x6F8A53B0 (#10102)
 //1.14d: 0x00500850
-D2WinAnimImageStrc* __fastcall ANIMIMAGE_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, D2CellFileStrc* pCellFile, uint32_t nAnimSpeed, int32_t(__stdcall* a7)(SMSGHANDLER_PARAMS*), D2AnimatedImageDescriptor* pDescriptor, DrawMode eDrawMode, void(__stdcall* a10)(SMSGHANDLER_PARAMS*))
+D2WinAnimImageStrc* __fastcall ANIMIMAGE_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, D2CellFileStrc* pCellFile, uint32_t nAnimSpeed, int32_t(__stdcall* pfCallback)(SMSGHANDLER_PARAMS*), D2AnimatedImageDescriptor* pDescriptor, DrawMode eDrawMode, void(__stdcall* pfOnHover)(SMSGHANDLER_PARAMS*))
 {
 	D2WinAnimImageStrc* pAnimImage = D2_CALLOC_STRC(D2WinAnimImageStrc);
 
@@ -31,7 +31,7 @@ D2WinAnimImageStrc* __fastcall ANIMIMAGE_Create(int32_t nX, int32_t nY, int32_t 
 	pAnimImage->controlHeader.nHeight = nHeight;
 	pAnimImage->controlHeader.pfDraw = ANIMIMAGE_Draw;
 	pAnimImage->controlHeader.pfHandleMouseDown = ANIMIMAGE_HandleMouseDown;
-	pAnimImage->controlHeader.pfCallback = a7;
+	pAnimImage->controlHeader.pfCallback = pfCallback;
 	pAnimImage->pAnimatedImageDescriptor = pDescriptor;
 	pAnimImage->nAnimSpeed = nAnimSpeed;
 	pAnimImage->dwStartTickCount = GetTickCount();
@@ -50,7 +50,7 @@ D2WinAnimImageStrc* __fastcall ANIMIMAGE_Create(int32_t nX, int32_t nY, int32_t 
 		pAnimImage->eDrawMode = DRAWMODE_NORMAL;
 	}
 
-	pAnimImage->pfOnHover = a10;
+	pAnimImage->pfOnHover = pfOnHover;
 	pAnimImage->bIsRunning = 1;
 
 	CONTROL_AppendToList(&pAnimImage->controlHeader);

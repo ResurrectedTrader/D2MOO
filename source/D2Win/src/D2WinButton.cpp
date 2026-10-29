@@ -20,7 +20,7 @@
 
 //D2Win.0x6F8A61A0 (#10107)
 //1.14d: 0x00501290
-D2WinButtonStrc* __fastcall BUTTON_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, D2CellFileStrc* pCellFile, int32_t(__stdcall* pCallback)(SMSGHANDLER_PARAMS*), int32_t nActivationVirtualKey, int32_t nBaseFrame, uint32_t nFlags, uint16_t nStringId, int32_t(__stdcall* pfUpdateHoverState)(SMSGHANDLER_PARAMS*))
+D2WinButtonStrc* __fastcall BUTTON_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, D2CellFileStrc* pCellFile, int32_t(__stdcall* pfCallback)(SMSGHANDLER_PARAMS*), int32_t nActivationVirtualKey, int32_t nBaseFrame, uint32_t nFlags, uint16_t nStringId, int32_t(__stdcall* pfUpdateHoverState)(SMSGHANDLER_PARAMS*))
 {
 	D2WinButtonStrc* pButton = D2_CALLOC_STRC(D2WinButtonStrc);
 
@@ -40,7 +40,7 @@ D2WinButtonStrc* __fastcall BUTTON_Create(int32_t nX, int32_t nY, int32_t nWidth
 		pButton->controlHeader.pfHandleVirtualKeyInput = BUTTON_HandleVirtualKeyInput;
 	}
 
-	pButton->controlHeader.pfCallback = pCallback;
+	pButton->controlHeader.pfCallback = pfCallback;
 	pButton->nActivationVirtualKey = nActivationVirtualKey;
 	pButton->dwButtonFlags = nFlags;
 	pButton->nBaseFrame = nBaseFrame;

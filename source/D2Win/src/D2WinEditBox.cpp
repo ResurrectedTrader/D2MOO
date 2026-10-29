@@ -30,7 +30,7 @@ int dword_6F8FD8B4;
 
 //D2Win.0x6F8A6C80 (#10070)
 //1.14d: 0x005001D0
-D2WinEditBoxStrc* __fastcall D2Win_10070_EDITBOX_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, int32_t a5, int32_t a6, D2CellFileStrc* pCellFile, int32_t a8, int32_t(__stdcall* a9)(SMSGHANDLER_PARAMS*), int32_t nEditBoxFlags, int32_t a11)
+D2WinEditBoxStrc* __fastcall D2Win_10070_EDITBOX_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, int32_t a5, int32_t a6, D2CellFileStrc* pCellFile, int32_t pfOnReturn, int32_t(__stdcall* pfCallback)(SMSGHANDLER_PARAMS*), int32_t nEditBoxFlags, int32_t a11)
 {
 	D2WinEditBoxStrc* pEditBox = D2_CALLOC_STRC(D2WinEditBoxStrc);
 
@@ -58,8 +58,8 @@ D2WinEditBoxStrc* __fastcall D2Win_10070_EDITBOX_Create(int32_t nX, int32_t nY, 
 	}
 
 	pEditBox->controlHeader.pfHandleMouseUp = EDITBOX_HandleMouseUp;
-	pEditBox->pfOnReturn = (EditBoxReturnCallback)a8;
-	pEditBox->controlHeader.pfCallback = a9;
+	pEditBox->pfOnReturn = (EditBoxReturnCallback)pfOnReturn;
+	pEditBox->controlHeader.pfCallback = pfCallback;
 	pEditBox->dwEditBoxFlags = nEditBoxFlags;
 
 	if (a11)
@@ -722,7 +722,7 @@ void __fastcall sub_6F8A7970(D2WinEditBoxStrc* pEditBox)
 
 //D2Win.0x6F8A7AB0) --------------------------------------------------------
 //1.14d: 0x004FF050
-int32_t __fastcall EDITBOX_HandleKeyDown(D2WinEditBoxStrc* pEditBox, char a2)
+int32_t __fastcall EDITBOX_HandleKeyDown(D2WinEditBoxStrc* pEditBox, char nVirtualKey)
 {
 //	unsigned int v2; // ebp@0
 //	D2WinEditBoxStrc* v3; // esi@1
@@ -757,7 +757,7 @@ int32_t __fastcall EDITBOX_HandleKeyDown(D2WinEditBoxStrc* pEditBox, char a2)
 //	SMSGHANDLER_PARAMS a1; // [sp+1Ch] [bp-24h]@38
 //
 //	v3 = pEditBox;
-//	v29 = a2;
+//	v29 = nVirtualKey;
 //	D2_ASSERT(pEditBox);
 //	D2_ASSERT(pEditBox->controlHeader.nType == D2WIN_EDITBOX);
 //

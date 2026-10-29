@@ -15,7 +15,7 @@ struct D2WinTimerStrc
 
 //D2Win.0x6F8B1B70
 //1.14d: 0x004FD9D0
-D2WinTimerStrc* __fastcall TIMER_Create(uint32_t nTimeout, int32_t(__stdcall* a2)(SMSGHANDLER_PARAMS*));
+D2WinTimerStrc* __fastcall TIMER_Create(uint32_t nTimeout, int32_t(__stdcall* pfCallback)(SMSGHANDLER_PARAMS*));
 //D2Win.0x6F8B1BF0
 //1.14d: 0x004FD820
 int32_t __fastcall TIMER_Destroy(D2WinControlStrc* pControl);

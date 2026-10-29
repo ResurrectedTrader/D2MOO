@@ -18,7 +18,7 @@
 
 //D2Win.0x6F8AF040 (#10063)
 //1.14d: 0x005084F0
-D2WinScrollBarStrc* __fastcall SCROLLBAR_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, D2CellFileStrc* pCellFile, int32_t(__stdcall* a6)(SMSGHANDLER_PARAMS*))
+D2WinScrollBarStrc* __fastcall SCROLLBAR_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, D2CellFileStrc* pCellFile, int32_t(__stdcall* pfCallback)(SMSGHANDLER_PARAMS*))
 {
 	D2WinScrollBarStrc* pScrollBar = D2_CALLOC_STRC(D2WinScrollBarStrc);
 
@@ -32,7 +32,7 @@ D2WinScrollBarStrc* __fastcall SCROLLBAR_Create(int32_t nX, int32_t nY, int32_t 
 	pScrollBar->controlHeader.pfDraw = SCROLLBAR_Draw;
 	pScrollBar->controlHeader.pfHandleMouseDown = SCROLLBAR_HandleMouseDown;
 	pScrollBar->controlHeader.pfHandleMouseUp = SCROLLBAR_HandleMouseUp;
-	pScrollBar->controlHeader.pfCallback = a6;
+	pScrollBar->controlHeader.pfCallback = pfCallback;
 
 	CONTROL_AppendToList(&pScrollBar->controlHeader);
 

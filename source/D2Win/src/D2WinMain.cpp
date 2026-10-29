@@ -388,10 +388,10 @@ int __stdcall D2Win_StopMessageLoop()
 
 //D2Win.0x6F8ACF90 (#10008)
 //1.14d: 0x004FA590
-int __stdcall D2Win_RunMessageLoop(void(__stdcall* pCallback)(DWORD))
+int __stdcall D2Win_RunMessageLoop(void(__stdcall* pfOnFrame)(DWORD))
 {
 	int nSleepMillis = 0;
-	DWORD dwCounter = 0;
+	DWORD dwFrame = 0;
 	
 	DWORD dwTickCount = GetTickCount();
 
@@ -429,10 +429,10 @@ int __stdcall D2Win_RunMessageLoop(void(__stdcall* pCallback)(DWORD))
 					nSleepMillis = 0;
 				}
 
-				if (pCallback)
+				if (pfOnFrame)
 				{
-					pCallback(dwCounter);
-					++dwCounter;
+					pfOnFrame(dwFrame);
+					++dwFrame;
 				}
 
 				D2Win_UpdateAndDraw();
@@ -773,14 +773,14 @@ int __stdcall CONTROL_Destroy(void* ppControl)
 
 //D2Win.0x6F8AD570 (#10025)
 //1.14d: 0x004F96F0
-void __fastcall CONTROL_SetEnabled(D2WinControlStrc* pControl, int bSet)
+void __fastcall CONTROL_SetEnabled(D2WinControlStrc* pControl, int bEnabled)
 {
 	if (!pControl)
 	{
 		return;
 	}
 
-	if (bSet)
+	if (bEnabled)
 	{
 		pControl->dwFlags |= gdwBitMasks[0];
 	}
@@ -801,11 +801,11 @@ int __fastcall CONTROL_IsEnabled(D2WinControlStrc* pControl)
 
 //D2Win.0x6F8AD5D0 (#10027)
 //1.14d: 0x004F9740
-void __fastcall CONTROL_SetVisible(D2WinControlStrc* pControl, int bSet)
+void __fastcall CONTROL_SetVisible(D2WinControlStrc* pControl, int bVisible)
 {
 	D2_ASSERT(pControl);
 
-	if (bSet)
+	if (bVisible)
 	{
 		pControl->dwFlags |= gdwBitMasks[2];
 	}
@@ -878,11 +878,11 @@ void __stdcall D2Win_UpdateAndDraw()
 		return;
 	}
 
-	for (D2WinControlStrc* i = gpControlList_6F8FE24C; i; i = i->pNext)
+	for (D2WinControlStrc* pControl = gpControlList_6F8FE24C; pControl; pControl = pControl->pNext)
 	{
-		if (i->pfUpdate)
+		if (pControl->pfUpdate)
 		{
-			i->pfUpdate(i);
+			pControl->pfUpdate(pControl);
 		}
 	}
 
@@ -922,11 +922,11 @@ void __stdcall D2Win_UpdateAndDraw()
 			}
 		}
 
-		for (D2WinControlStrc* i = gpControlList_6F8FE24C; i; i = i->pNext)
+		for (D2WinControlStrc* pControl = gpControlList_6F8FE24C; pControl; pControl = pControl->pNext)
 		{
-			if (i->pfDraw && !(i->dwFlags & gdwBitMasks[3]))
+			if (pControl->pfDraw && !(pControl->dwFlags & gdwBitMasks[3]))
 			{
-				i->pfDraw(i);
+				pControl->pfDraw(pControl);
 			}
 		}
 
@@ -951,11 +951,11 @@ void __stdcall D2Win_UpdateAndDraw()
 			D2GFX_DrawBoxAlpha(0, 0, nScreenWidth, nScreenHeight, 0, 127u);
 		}
 
-		for (D2WinControlStrc* i = gpControlList_6F8FE24C; i; i = i->pNext)
+		for (D2WinControlStrc* pControl = gpControlList_6F8FE24C; pControl; pControl = pControl->pNext)
 		{
-			if (i->pfDraw && i->dwFlags & gdwBitMasks[3])
+			if (pControl->pfDraw && pControl->dwFlags & gdwBitMasks[3])
 			{
-				i->pfDraw(i);
+				pControl->pfDraw(pControl);
 			}
 		}
 

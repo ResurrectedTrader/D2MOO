@@ -54,7 +54,7 @@ struct D2WinEditBoxStrc
 
 //D2Win.0x6F8A6C80
 //1.14d: 0x005001D0
-D2WinEditBoxStrc* __fastcall D2Win_10070_EDITBOX_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, int32_t a5, int32_t a6, D2CellFileStrc* pCellFile, int32_t a8, int32_t(__stdcall* a9)(SMSGHANDLER_PARAMS*), int32_t nEditBoxFlags, int32_t a11);
+D2WinEditBoxStrc* __fastcall D2Win_10070_EDITBOX_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, int32_t a5, int32_t a6, D2CellFileStrc* pCellFile, int32_t pfOnReturn, int32_t(__stdcall* pfCallback)(SMSGHANDLER_PARAMS*), int32_t nEditBoxFlags, int32_t a11);
 //D2Win.0x6F8A6DC0
 //1.14d: 0x004FDAA0
 int __fastcall D2Win_10071_EDITBOX_Destroy(D2WinEditBoxStrc* pEditBox);
@@ -78,7 +78,7 @@ int32_t __fastcall D2Win_10074(D2WinEditBoxStrc* pEditBox, uint8_t a2);
 void __fastcall sub_6F8A7970(D2WinEditBoxStrc* pEditBox);
 //D2Win.0x6F8A7AB0
 //1.14d: 0x004FF050
-int __fastcall EDITBOX_HandleKeyDown(D2WinEditBoxStrc* pEditBox, char a2);
+int __fastcall EDITBOX_HandleKeyDown(D2WinEditBoxStrc* pEditBox, char nVirtualKey);
 //D2Win.0x6F8A80A0
 //1.14d: 0x004FDD50
 void __fastcall EDITBOX_SetMaxLength(D2WinEditBoxStrc* pEditBox, int32_t nMaxLength);

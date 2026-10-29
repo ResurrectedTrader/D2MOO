@@ -64,7 +64,7 @@ D2WIN_DLL_DECL void __stdcall D2Win_SetQuitCallback(int(*pfOnQuit)());
 D2WIN_DLL_DECL int __stdcall D2Win_StopMessageLoop();
 //D2Win.0x6F8ACF90 (#10008)
 //1.14d: 0x004FA590
-D2WIN_DLL_DECL int __stdcall D2Win_RunMessageLoop(void(__stdcall* pCallback)(DWORD));
+D2WIN_DLL_DECL int __stdcall D2Win_RunMessageLoop(void(__stdcall* pfOnFrame)(DWORD));
 //D2Win.0x6F8AD0B0 (#10013)
 //1.14d: 0x004F91A0
 D2WIN_DLL_DECL int __stdcall CONTROL_SetCellFile(D2WinControlStrc* pControl, D2CellFileStrc* pCellFile);
@@ -88,13 +88,13 @@ D2WIN_DLL_DECL D2WinControlStrc* __stdcall CONTROL_Create(D2WinControlInitStrc* 
 D2WIN_DLL_DECL int __stdcall CONTROL_Destroy(void*ppControl);
 //D2Win.0x6F8AD570 (#10025)
 //1.14d: 0x004F96F0
-D2WIN_DLL_DECL void __fastcall CONTROL_SetEnabled(D2WinControlStrc* pControl, int bSet);
+D2WIN_DLL_DECL void __fastcall CONTROL_SetEnabled(D2WinControlStrc* pControl, int bEnabled);
 //D2Win.0x6F8AD5A0 (#10024)
 //1.14d: 0x004F9710
 D2WIN_DLL_DECL int __fastcall CONTROL_IsEnabled(D2WinControlStrc* pControl);
 //D2Win.0x6F8AD5D0 (#10027)
 //1.14d: 0x004F9740
-D2WIN_DLL_DECL void __fastcall CONTROL_SetVisible(D2WinControlStrc* pControl, int bSet);
+D2WIN_DLL_DECL void __fastcall CONTROL_SetVisible(D2WinControlStrc* pControl, int bVisible);
 //D2Win.0x6F8AD620 (#10026)
 //1.14d: 0x004F9780
 D2WIN_DLL_DECL int __fastcall CONTROL_IsVisible(D2WinControlStrc* pControl);
