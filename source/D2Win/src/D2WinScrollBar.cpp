@@ -32,7 +32,7 @@ D2WinScrollBarStrc* __fastcall SCROLLBAR_Create(int32_t nX, int32_t nY, int32_t 
 	pScrollBar->controlHeader.pfDraw = SCROLLBAR_Draw;
 	pScrollBar->controlHeader.pfHandleMouseDown = SCROLLBAR_HandleMouseDown;
 	pScrollBar->controlHeader.pfHandleMouseUp = SCROLLBAR_HandleMouseUp;
-	pScrollBar->controlHeader.field_34 = a6;
+	pScrollBar->controlHeader.pfCallback = a6;
 
 	CONTROL_AppendToList(&pScrollBar->controlHeader);
 
@@ -306,9 +306,9 @@ int32_t __stdcall SCROLLBAR_HandleMouseDown(SMSGHANDLER_PARAMS* pMsg)
 		pScrollBar->pfOnStepChange(pMsg);
 	}
 
-	if (pScrollBar->controlHeader.field_34)
+	if (pScrollBar->controlHeader.pfCallback)
 	{
-		return pScrollBar->controlHeader.field_34(pMsg);
+		return pScrollBar->controlHeader.pfCallback(pMsg);
 	}
 
 	return 0;

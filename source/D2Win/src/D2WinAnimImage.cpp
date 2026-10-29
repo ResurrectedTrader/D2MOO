@@ -31,7 +31,7 @@ D2WinAnimImageStrc* __fastcall ANIMIMAGE_Create(int32_t nX, int32_t nY, int32_t 
 	pAnimImage->controlHeader.nHeight = nHeight;
 	pAnimImage->controlHeader.pfDraw = ANIMIMAGE_Draw;
 	pAnimImage->controlHeader.pfHandleMouseDown = ANIMIMAGE_HandleMouseDown;
-	pAnimImage->controlHeader.field_34 = a7;
+	pAnimImage->controlHeader.pfCallback = a7;
 	pAnimImage->pAnimatedImageDescriptor = pDescriptor;
 	pAnimImage->nAnimSpeed = nAnimSpeed;
 	pAnimImage->dwStartTickCount = GetTickCount();
@@ -267,12 +267,12 @@ int32_t __stdcall ANIMIMAGE_HandleMouseDown(SMSGHANDLER_PARAMS* pMsg)
 
 	D2_ASSERT(pAnimImage->controlHeader.nType == D2WIN_IMAGE);
 
-	if (!pAnimImage->controlHeader.field_34)
+	if (!pAnimImage->controlHeader.pfCallback)
 	{
 		return 0;
 	}
 
-	const int32_t nResult = pAnimImage->controlHeader.field_34(pMsg);
+	const int32_t nResult = pAnimImage->controlHeader.pfCallback(pMsg);
 	if (!nResult)
 	{
 		return 0;
