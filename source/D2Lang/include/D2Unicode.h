@@ -241,6 +241,7 @@ struct D2LANG_DLL_DECL Unicode {
    *
    * D2Lang.0x6FC12A40 (#10051) ?toUnicode@Unicode@@SIPAU1@PAU1@PBDH@Z
    */
+  //1.14d: 0x00526320
   static Unicode* __fastcall toUnicode(
       Unicode* dest,
       const char* src,
@@ -274,6 +275,7 @@ struct D2LANG_DLL_DECL Unicode {
    *
    * D2Lang.0x6FC12B60 (#10053) ?toUtf@Unicode@@SIPADPADPBU1@H@Z
    */
+  //1.14d: 0x005263E0
   static char* __fastcall toUtf(char* dest, const Unicode* src, int count);
   
   //1.10f: D2Lang.0x6FC11B30 (#10059) ?utf8ToUnicode@Unicode@@SIPAU1@PAU1@PBDH@Z

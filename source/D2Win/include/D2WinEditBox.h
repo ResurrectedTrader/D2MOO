@@ -55,16 +55,16 @@ struct D2WinEditBoxStrc
 //D2Win.0x6F8A6C80
 //1.14d: 0x005001D0
 D2WinEditBoxStrc* __fastcall D2Win_10070_EDITBOX_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, int32_t a5, int32_t a6, D2CellFileStrc* pCellFile, int32_t pfOnReturn, int32_t(__stdcall* pfCallback)(SMSGHANDLER_PARAMS*), int32_t nEditBoxFlags, int32_t a11);
-//D2Win.0x6F8A6DC0
+//D2Win.0x6F8A6DC0 (#10071)
 //1.14d: 0x004FDAA0
 int __fastcall D2Win_10071_EDITBOX_Destroy(D2WinEditBoxStrc* pEditBox);
-//D2Win.0x6F8A6E10
+//D2Win.0x6F8A6E10 (#10072)
 //1.14d: 0x004FDAD0
 void __fastcall EDITBOX_SetKeyFilter(D2WinEditBoxStrc* pEditBox, EditBoxKeyFilterCallback pfKeyFilter);
-//D2Win.0x6F8A6E60
+//D2Win.0x6F8A6E60 (#10073)
 //1.14d: 0x004FDB00
 void __fastcall EDITBOX_SetChangeCallback(D2WinEditBoxStrc* pEditBox, EditBoxChangeCallback pfOnChange);
-//D2Win.0x6F8A6EB0
+//D2Win.0x6F8A6EB0 (#10083)
 //1.14d: 0x004FDCC0
 void __fastcall EDITBOX_ClearSelection(D2WinEditBoxStrc* pEditBox);
 //D2Win.0x6F8A6F10
@@ -79,19 +79,19 @@ void __fastcall sub_6F8A7970(D2WinEditBoxStrc* pEditBox);
 //D2Win.0x6F8A7AB0
 //1.14d: 0x004FF050
 int __fastcall EDITBOX_HandleKeyDown(D2WinEditBoxStrc* pEditBox, char nVirtualKey);
-//D2Win.0x6F8A80A0
+//D2Win.0x6F8A80A0 (#10081)
 //1.14d: 0x004FDD50
 void __fastcall EDITBOX_SetMaxLength(D2WinEditBoxStrc* pEditBox, int32_t nMaxLength);
-//D2Win.0x6F8A80F0
+//D2Win.0x6F8A80F0 (#10076)
 //1.14d: 0x004FFE10
 int __fastcall D2Win_10076(D2WinEditBoxStrc* pEditBox, const char* szText);
-//D2Win.0x6F8A8140
+//D2Win.0x6F8A8140 (#10075)
 //1.14d: 0x004FF5A0
 int __fastcall EDITBOX_SetText(D2WinEditBoxStrc* pEditBox, const Unicode* pText);
-//D2Win.0x6F8A81E0
+//D2Win.0x6F8A81E0 (#10077)
 //1.14d: 0x004FDD90
 const Unicode* __fastcall D2Win_10077_EDITBOX_GetText(D2WinEditBoxStrc* pEditBox);
-//D2Win.0x6F8A8230
+//D2Win.0x6F8A8230 (#10080)
 //1.14d: 0x004FDDD0
 void __fastcall D2Win_10080_EDITBOX_SetNextEditBox(D2WinEditBoxStrc* pEditBox, D2WinEditBoxStrc* pNext);
 //D2Win.0x6F8A82D0

@@ -29,19 +29,19 @@ struct D2WinAccountListStrc
 //D2Win.0x6F8A4E90
 //1.14d: 0x00507CA0
 D2WinAccountListStrc* __fastcall ACCOUNTLIST_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, int32_t a5, void* a6);
-//D2Win.0x6F8A4F70
+//D2Win.0x6F8A4F70 (#10163)
 //1.14d: 0x00507AF0
 int __fastcall ACCOUNTLIST_Destroy(D2WinAccountListStrc* pAccountList);
-//D2Win.0x6F8A4FC0
+//D2Win.0x6F8A4FC0 (#10164)
 //1.14d: 0x00507850
 void __fastcall ACCOUNTLIST_FreeData(D2WinAccountListStrc* pAccountList);
-//D2Win.0x6F8A5010
+//D2Win.0x6F8A5010 (#10165)
 //1.14d: 0x005078A0
 void __fastcall ACCOUNTLIST_AllocData(D2WinAccountListStrc* pAccountList, const char* szText);
-//D2Win.0x6F8A5080
+//D2Win.0x6F8A5080 (#10166)
 //1.14d: 0x00507900
 int __fastcall ACCOUNTLIST_RemoveEntry(D2WinAccountListStrc* pAccountList, const char* szText);
-//D2Win.0x6F8A5140
+//D2Win.0x6F8A5140 (#10167)
 //1.14d: 0x005079C0
 int __fastcall ACCOUNTLIST_GetTextFromSelectedEntry(D2WinAccountListStrc* pAccountList, char* szBuffer);
 //D2Win.0x6F8A5180

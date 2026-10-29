@@ -45,22 +45,22 @@ struct D2WinListStrc
 //D2Win.0x6F8AC270
 //1.14d: 0x005075E0
 D2WinListStrc* __fastcall LIST_Create(int nX, int nY, int nWidth, int nHeight, void* a5, Font* pFont);
-//D2Win.0x6F8AC490
+//D2Win.0x6F8AC490 (#10136)
 //1.14d: 0x00506E60
 int __fastcall LIST_Destroy(D2WinListStrc* pList);
-//D2Win.0x6F8AC4F0
+//D2Win.0x6F8AC4F0 (#10138)
 //1.14d: 0x005077F0
 void __fastcall D2Win_10138(D2WinListStrc* pList, const char* szText, int(__stdcall* a3)(SMSGHANDLER_PARAMS*), char a4, int a5, int a6, int a7);
-//D2Win.0x6F8AC570
+//D2Win.0x6F8AC570 (#10137)
 //1.14d: 0x00506EC0
 void __fastcall D2Win_10137(D2WinListStrc* pList, Unicode* wszText, int(__stdcall* a3)(SMSGHANDLER_PARAMS*), char a4, int a5, int a6, int a7);
-//D2Win.0x6F8AC6D0
+//D2Win.0x6F8AC6D0 (#10139)
 //1.14d: 0x00507000
 int __fastcall LIST_GetSelectedDataIndex(D2WinListStrc* pList);
-//D2Win.0x6F8AC720
+//D2Win.0x6F8AC720 (#10140)
 //1.14d: 0x00507050
 D2WinListDataStrc* __fastcall LIST_GetDataFromIndex(D2WinListStrc* pList, int32_t nIndex);
-//D2Win.0x6F8AC770
+//D2Win.0x6F8AC770 (#10141)
 //1.14d: 0x005070A0
 int __fastcall D2Win_10141(D2WinListStrc* pList);
 //D2Win.0x6F8AC7A0

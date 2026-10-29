@@ -16,13 +16,13 @@ struct D2WinTimerStrc
 //D2Win.0x6F8B1B70
 //1.14d: 0x004FD9D0
 D2WinTimerStrc* __fastcall TIMER_Create(uint32_t nTimeout, int32_t(__stdcall* pfCallback)(SMSGHANDLER_PARAMS*));
-//D2Win.0x6F8B1BF0
+//D2Win.0x6F8B1BF0 (#10181)
 //1.14d: 0x004FD820
 int32_t __fastcall TIMER_Destroy(D2WinControlStrc* pControl);
-//D2Win.0x6F8B1C00
+//D2Win.0x6F8B1C00 (#10180)
 //1.14d: 0x004FD830
 void __fastcall TIMER_DisableSpaceKey(D2WinTimerStrc* pTimer);
-//D2Win.0x6F8B1C30
+//D2Win.0x6F8B1C30 (#10182)
 //1.14d: 0x004FDA50
 void __fastcall TIMER_SetRepeating(D2WinTimerStrc* pTimer);
 //D2Win.0x6F8B1C60

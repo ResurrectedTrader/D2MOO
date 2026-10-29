@@ -137,6 +137,7 @@ static int Utf8CodePointToUnicodeChar(Unicode* dest, const char* src, int count)
   return -1;
 }
 
+//D2Lang.0x6FC12A40
 //1.14d: 0x00526320
 Unicode* __fastcall Unicode::toUnicode(
     Unicode* dest,

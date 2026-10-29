@@ -21,16 +21,16 @@ struct D2WinSmackStrc
 D2WinSmackStrc* __fastcall SMACK_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, int32_t(__stdcall* pfCallback)(SMSGHANDLER_PARAMS*));
 //D2Win.0x6F8AF7E0
 int __stdcall SMACK_Decode(D2WinSmackStrc* pSmack, const char* szFileName, int nVersion, int nUnused, int nUnused2);
-//D2Win.0x6F8AF860
+//D2Win.0x6F8AF860 (#10101)
 //1.14d: 0x00506990
 int __stdcall SMACK_DeleteFile(D2WinSmackStrc* pSmack);
-//D2Win.0x6F8AF8B0
+//D2Win.0x6F8AF8B0 (#10100)
 //1.14d: 0x005069F0
 int __stdcall SMACK_SetCoordinates(D2WinSmackStrc* pSmack, int nX, int nY);
-//D2Win.0x6F8AF900
+//D2Win.0x6F8AF900 (#10098)
 //1.14d: 0x00506A40
 int __fastcall SMACK_Destroy(D2WinSmackStrc* pSmack);
-//D2Win.0x6F8AF950
+//D2Win.0x6F8AF950 (#10184)
 //1.14d: 0x00506A80
 void __stdcall D2Win_10184();
 //D2Win.0x6F8AF960

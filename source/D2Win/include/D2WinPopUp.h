@@ -23,7 +23,7 @@ struct D2WinPopUpStrc
 //D2Win.0x6F8AEAE0
 //1.14d: 0x005088C0
 void __stdcall POPUP_Create();
-//D2Win.0x6F8AEBA0
+//D2Win.0x6F8AEBA0 (#10095)
 //1.14d: 0x005085A0
 void __stdcall POPUP_Destroy();
 //D2Win.0x6F8AEBC0

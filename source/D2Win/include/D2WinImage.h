@@ -45,16 +45,16 @@ int __fastcall IMAGE_Destroy(D2WinControlStrc* pControl);
 D2WinImageStrc* __fastcall IMAGE_Create(int32_t nX, int32_t nY, int32_t nWidth, int32_t nHeight, D2CellFileStrc* pCellFile, int32_t a6, int32_t a7);
 //D2Win.0x6F8ABC00
 int32_t __stdcall IMAGE_SetCellFile(D2WinImageStrc* pImage, D2CellFileStrc* pCellFile, D2WinImageClickRectStrc* pClickRect);
-//D2Win.0x6F8ABC40
+//D2Win.0x6F8ABC40 (#10087)
 //1.14d: 0x004FD0B0
 int32_t __stdcall IMAGE_SetCoordinates(D2WinImageStrc* pImage, int32_t nX, int32_t nY);
-//D2Win.0x6F8ABC80
+//D2Win.0x6F8ABC80 (#10088)
 //1.14d: 0x004FD110
 int32_t __stdcall IMAGE_SetFrame(D2WinImageStrc* pImage, int32_t nFrame);
-//D2Win.0x6F8ABCD0
+//D2Win.0x6F8ABCD0 (#10089)
 //1.14d: 0x004FD170
 int32_t __stdcall IMAGE_ForceNormalDrawMode(D2WinImageStrc* pImage, int32_t nUnused);
-//D2Win.0x6F8ABD10
+//D2Win.0x6F8ABD10 (#10090)
 //1.14d: 0x004FD1B0
 int32_t __stdcall IMAGE_GetFrameCount(D2WinImageStrc* pImage);
 //D2Win.0x6F8ABD50
