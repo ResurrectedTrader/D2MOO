@@ -30,19 +30,19 @@ using EditBoxChangeCallback = void(__stdcall*)(int32_t nUnused);
 struct D2WinEditBoxStrc
 {
 	D2WinControlStrc controlHeader;					//0x00
-	int32_t nTextInsetX;							//0x40
-	int32_t nTextInsetY;							//0x44	
-	int32_t nMaxLength;								//0x48
-	int32_t nFirstVisibleChar;						//0x4C
-	int32_t nLastVisibleChar;						//0x50
-	int32_t nSelectionStart;						//0x54
-	int32_t nSelectionEnd;							//0x58
+	int32_t nTextInsetX;							//0x40 text inset from the left and right edges (form field_14)
+	int32_t nTextInsetY;							//0x44 text inset from the top and bottom edges (form nStringId)
+	int32_t nMaxLength;								//0x48 typing stops at nMaxLength - 1 characters (#10081, default 256)
+	int32_t nFirstVisibleChar;						//0x4C first character of the visible part of a single-line box
+	int32_t nLastVisibleChar;						//0x50 last character of the visible part of a single-line box
+	int32_t nSelectionStart;						//0x54 selection anchor, -1 = no selection; the selection is [min, max) of 0x54 / 0x58
+	int32_t nSelectionEnd;							//0x58 selection end (the caret side)
 	Unicode wszText[256];							//0x5C
-	int32_t nCaretPosition;							//0x25C
-	uint32_t dwEditBoxFlags;						//0x260
+	int32_t nCaretPosition;							//0x25C character index into wszText
+	uint32_t dwEditBoxFlags;						//0x260 D2EditBoxFlags
 	EditBoxReturnCallback pfOnReturn;				//0x264
-	EditBoxKeyFilterCallback pfKeyFilter;			//0x268
-	EditBoxChangeCallback pfOnChange;				//0x26C
+	EditBoxKeyFilterCallback pfKeyFilter;			//0x268 #10072
+	EditBoxChangeCallback pfOnChange;				//0x26C #10073
 	Font eFont;										//0x270
 	int32_t nTextColor;								//0x274
 	D2WinEditBoxStrc* pNext;						//0x278

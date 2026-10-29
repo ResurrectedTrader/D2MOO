@@ -39,11 +39,11 @@ struct D2WinTextBoxStrc
 	int32_t field_44;								//0x44
 	D2WinTextBoxLineStrc* pFirstLine;				//0x48
 	D2WinTextBoxLineStrc* pLastLine;				//0x4C
-	D2WinTextBoxLineStrc* pCurrentLine;				//0x50
+	D2WinTextBoxLineStrc* pCurrentLine;				//0x50 First visible line (the line at index nLine)
 	int32_t nNumLines;								//0x54
-	int32_t nLine;									//0x58
-	int32_t dwTextBoxFlags;							//0x5C
-	int32_t nCurrentLine;							//0x60
+	int32_t nLine;									//0x58 Index of the first visible line (scroll position)
+	int32_t dwTextBoxFlags;							//0x5C TextBoxFlags
+	int32_t nCurrentLine;							//0x60 Selected line index, -1 when none
 	int32_t nNumColumns;							//0x64
 	int32_t unk0x68[5];								//0x68
 	int32_t unk0x7C[5];								//0x7C

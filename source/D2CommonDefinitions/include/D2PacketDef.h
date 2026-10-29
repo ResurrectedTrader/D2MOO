@@ -431,7 +431,7 @@ struct D2GSPacketClt39		//size of 0x05
 struct D2GSPacketClt3A		//size of 0x03
 {
 	uint8_t nHeader;			//0x00
-	uint16_t nStat;				//0x01
+	uint16_t nStat;				//0x01 low byte: stat id, high byte: point count - 1
 };
 
 struct D2GSPacketClt3B		//size of 0x03

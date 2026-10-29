@@ -28,11 +28,11 @@ struct D2CellFileStrc;
 
 struct D2WinControlStrc
 {
-	int32_t nType;															//0x00
+	int32_t nType;															//0x00 D2ControlTypes
 	D2CellFileStrc* pCellFile;												//0x04
-	uint32_t dwFlags;														//0x08
+	uint32_t dwFlags;														//0x08 D2WinControlFlags
 	int32_t nImageX;														//0x0C
-	int32_t nImageY;														//0x10
+	int32_t nImageY;														//0x10 bottom edge
 	int32_t nWidth;															//0x14
 	int32_t nHeight;														//0x18
 	int32_t(__fastcall* pfDraw)(D2WinControlStrc*);							//0x1C

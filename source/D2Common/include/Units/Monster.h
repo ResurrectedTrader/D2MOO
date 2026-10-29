@@ -24,7 +24,7 @@ struct D2MonsterLifeSyncStrc
 	int32_t unk0x00;						//0x00
 	int32_t nLifePercentage;				//0x04
 	int32_t unk0x08;						//0x08
-	uint8_t nCount;							//0x0C
+	uint8_t nCount;							//0x0C small changes skipped since the last update
 	uint8_t pad0x0D[3];						//0x0D
 };
 

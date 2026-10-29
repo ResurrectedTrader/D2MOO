@@ -35,8 +35,8 @@ struct D2CofNodeStrc
 
 struct D2CofInfoStrc
 {
-	D2CofNodeStrc* pCofNode;
-	D2CofInfoStrc* pNext;
+	D2CofNodeStrc* pCofNode;				//0x00
+	D2CofInfoStrc* pNext;					//0x04
 };
 
 struct D2GfxInfoStrc

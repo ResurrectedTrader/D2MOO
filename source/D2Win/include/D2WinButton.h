@@ -22,10 +22,10 @@ enum ButtonFlags
 struct D2WinButtonStrc
 {
 	D2WinControlStrc controlHeader;							//0x00
-	uint32_t dwButtonFlags;									//0x40
-	int32_t bIsPressed;										//0x44
-	int32_t bIsCallbackPending;								//0x48
-	int32_t nActivationCounter;								//0x4C
+	uint32_t dwButtonFlags;									//0x40 ButtonFlags
+	int32_t bIsPressed;										//0x44 Set by the press, cleared by the release
+	int32_t bIsCallbackPending;								//0x48 The release runs the callback when set; BUTTON_Draw keeps it at "mouse over the button" while pressed
+	int32_t nActivationCounter;								//0x4C 1 after a key / simulated click, advanced by BUTTON_Draw: shows the pressed frame for two frames
 	int32_t nActivationVirtualKey;							//0x50
 	int32_t nIsPressedFrameOffset;							//0x54
 	int32_t field_58;										//0x58

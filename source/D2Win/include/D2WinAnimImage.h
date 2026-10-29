@@ -21,7 +21,7 @@ struct D2WinAnimImageStrc
 	uint32_t nAnimSpeed;									//0x44
 	uint32_t dwStartTickCount;								//0x48
 	int32_t nFrame;											//0x4C
-	int32_t nAnimType;										//0x50
+	int32_t nAnimType;										//0x50 0 idle, 1 hovered, 2 press animation, 3 held, 4 release animation
 	DrawMode eDrawMode;										//0x54
 	void(__stdcall* field_58)(SMSGHANDLER_PARAMS*);				//0x58
 	int32_t bIsRunning;										//0x5C
