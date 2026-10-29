@@ -129,6 +129,7 @@ int32_t __fastcall SMACK_Draw(D2WinControlStrc* pControl)
 		dword_6F96A8D8 = 0;
 	}
 
+	// The control never ends on its own (it is the 468x60 Battle.net ad banner): every frame plays the next frame.
 	WINDOW_PlaySmacker(&pSmack->smackerContext);
 	return 1;
 }

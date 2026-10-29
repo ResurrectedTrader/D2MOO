@@ -98,6 +98,7 @@ int32_t __fastcall MONSTERSPAWN_CanSpawnAtSpawnerExit(int32_t nMonsterId, D2Acti
 
 //D2Game.0x6FC68630
 //1.14d: 0x005FD470
+// The DiabPrison branch tests prison formation placement; flag 1 prevents allocation while placement RNG still advances.
 int32_t __fastcall MONSTERSPAWN_CheckSkillPlacement(D2GameStrc* pGame, D2UnitStrc* pUnit, int32_t nSkillId, D2UnitStrc* pTarget, int32_t nX, int32_t nY)
 {
     D2SkillsTxt* pSkillsTxtRecord = SKILLS_GetSkillsTxtRecord(nSkillId);

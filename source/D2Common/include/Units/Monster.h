@@ -19,6 +19,7 @@ struct D2MonsterInteractStrc
 	D2InteractInfoStrc* pInteractInfo;		//0x00
 };
 
+// Server: life percentage of a minion as last sent to its owner (packet 0x7F)
 struct D2MonsterLifeSyncStrc
 {
 	int32_t unk0x00;						//0x00

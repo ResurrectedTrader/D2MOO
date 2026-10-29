@@ -98,7 +98,7 @@ enum D2ClientFlagsEx
 	CLIENTFLAGEX_ARENA_RELATED		= 0x04,
 	CLIENTFLAGEX_HAS_SAVE_CHECKSUM	= 0x08,
 	CLIENTFLAGEX_SAVE_LOADED		= 0x10,
-	CLIENTFLAGEX_GAME_OWNER			= 0x20,
+	CLIENTFLAGEX_GAME_OWNER			= 0x20, // The client that created a single player game (GAME_ProcessNewGame for nGameType 1)
 };
 
 enum D2ClientsConstants

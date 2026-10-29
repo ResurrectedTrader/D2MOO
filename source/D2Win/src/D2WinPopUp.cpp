@@ -17,6 +17,7 @@
 D2WinPopUpStrc* gpPopUp;
 
 
+// A popup menu at the mouse position (replaces the previous one); POPUP_AddLine adds its lines
 //D2Win.0x6F8AEAE0 (#10094)
 //1.14d: 0x005088C0
 void __stdcall POPUP_Create()
@@ -70,6 +71,7 @@ int32_t __stdcall POPUP_IsActive()
 	return 1;
 }
 
+// At most 8 lines, 20 pixels each; the popup is as wide as its widest line (font 16)
 //D2Win.0x6F8AEC10 (#10096)
 //1.14d: 0x00508610
 int32_t __stdcall POPUP_AddLine(D2WinPopUpLineStrc* pPopUpLine)
@@ -95,6 +97,7 @@ int32_t __stdcall POPUP_AddLine(D2WinPopUpLineStrc* pPopUpLine)
 	return 1;
 }
 
+// From the mouse button handler (press and release): runs the hovered line's callback
 //D2Win.0x6F8AECA0
 //1.14d: 0x005086A0
 int32_t __stdcall POPUP_HandleMouseButtonInput(SMSGHANDLER_PARAMS* pMsg)
@@ -124,6 +127,7 @@ int32_t __stdcall POPUP_HandleMouseButtonInput(SMSGHANDLER_PARAMS* pMsg)
 	return 1;
 }
 
+// Per frame: finds the hovered line
 //D2Win.0x6F8AED10
 //1.14d: 0x00508710
 int32_t __fastcall POPUP_Initialize(D2WinControlStrc* pControl)

@@ -56,21 +56,27 @@ D2WIN_DLL_DECL int __stdcall BACKGROUND_SetCellFile(D2CellFileStrc* pCellFile);
 //D2Win.0x6F8ACF50 (#10011)
 //1.14d: 0x004F9160
 D2WIN_DLL_DECL int __stdcall CURSOR_SetCellFile(D2CellFileStrc* pCellFile);
+// Sets the callback D2Win_10008 runs when GetMessage returns 0 (WM_QUIT)
 //D2Win.0x6F8ACF70 (#10010)
 //1.14d: 0x004F9180
 D2WIN_DLL_DECL void __stdcall D2Win_10010(int(*a1)());
+// Ends the running D2Win_10008 message loop (after its current iteration)
 //D2Win.0x6F8ACF80 (#10009)
 //1.14d: 0x004F9190
 D2WIN_DLL_DECL int __stdcall D2Win_10009();
+// The message loop: dispatches the queued messages; when the queue is empty, every 40 ms runs pCallback(frame) then
+// D2Win_10019 (control updates / timers, drawing, dead list), then sleeps (0 ms while the app is active, else up to 20)
 //D2Win.0x6F8ACF90 (#10008)
 //1.14d: 0x004FA590
 D2WIN_DLL_DECL int __stdcall D2Win_10008(void(__stdcall* pCallback)(DWORD));
 //D2Win.0x6F8AD0B0 (#10013)
 //1.14d: 0x004F91A0
 D2WIN_DLL_DECL int __stdcall CONTROL_SetCellFile(D2WinControlStrc* pControl, D2CellFileStrc* pCellFile);
+// Sets the focused edit box (the previous one loses the focus through D2Win_10083)
 //D2Win.0x6F8AD0D0 (#10012)
 //1.14d: 0x004F91C0
 D2WIN_DLL_DECL int __stdcall D2Win_10012(D2WinEditBoxStrc* pEditBox);
+// The focused edit box as of the last idle loop iteration (the one keyboard input goes to)
 //D2Win.0x6F8AD110 (#10023)
 //1.14d: 0x004F9200
 D2WIN_DLL_DECL D2WinEditBoxStrc* __stdcall D2Win_10023();
@@ -86,12 +92,14 @@ D2WIN_DLL_DECL D2WinControlStrc* __stdcall CONTROL_Create(D2WinControlInitStrc* 
 //D2Win.0x6F8AD450 (#10018)
 //1.14d: 0x004F95C0
 D2WIN_DLL_DECL int __stdcall CONTROL_Destroy(void*ppControl);
+// Sets / clears CONTROLFLAG_ENABLED
 //D2Win.0x6F8AD570 (#10025)
 //1.14d: 0x004F96F0
 D2WIN_DLL_DECL void __fastcall D2Win_10025_CONTROL_ToggleFirstFlag(D2WinControlStrc* pControl, int bSet);
 //D2Win.0x6F8AD5A0 (#10024)
 //1.14d: 0x004F9710
 D2WIN_DLL_DECL int __fastcall D2Win_10024_CONTROL_CheckFirstFlag(D2WinControlStrc* pControl);
+// Sets / clears CONTROLFLAG_VISIBLE
 //D2Win.0x6F8AD5D0 (#10027)
 //1.14d: 0x004F9740
 D2WIN_DLL_DECL void __fastcall D2Win_10027_CONTROL_ToggleThirdFlag(D2WinControlStrc* pControl, int bSet);
@@ -104,6 +112,8 @@ D2WIN_DLL_DECL BOOL __stdcall CONTROL_MouseInsideRect(const RECT* pRect);
 //D2Win.0x6F8AD670
 //1.14d: 0x004FA6B0
 void __stdcall D2Win_COMMANDS_MouseMove_6F8AD670(SMSGHANDLER_PARAMS* pMsg);
+// One frame: every control's pfInitialize (timers fire here), then (unless D2Win_10014's window proc is set) the
+// background, the controls, the composites, the modal dim box, the topmost controls, the cursor, then the dead list
 //D2Win.0x6F8AD6F0 (#10019)
 //1.14d: 0x004F98E0
 D2WIN_DLL_DECL void __stdcall D2Win_10019();
@@ -137,6 +147,7 @@ D2WIN_DLL_DECL void __stdcall D2Win_10168_WINMAIN_CreateScreenshot();
 //D2Win.0x6F8ADE70
 //1.14d: 0x004FA840
 void __stdcall D2Win_COMMANDS_Snapshot_6F8ADE70(SMSGHANDLER_PARAMS* pMsg);
+// Ctrl+M: toggles the music
 //D2Win.0x6F8AE020
 //1.14d: 0x004FA160
 void __stdcall D2Win_COMMANDS_KeyF1_6F8AE020(SMSGHANDLER_PARAMS* pMsg);
@@ -152,6 +163,7 @@ D2WIN_DLL_DECL void __stdcall D2Win_10029(int a1);
 //D2Win.0x6F8AE4B0 (#10030)
 //1.14d: 0x004FA420
 D2WIN_DLL_DECL void __stdcall D2Win_10030_CONTROL_ToggleFourthFlag(D2WinControlStrc* pControl, int bSet);
+// Sets the button VK_ESCAPE clicks (BUTTON_SimulateClick)
 //D2Win.0x6F8AE4F0 (#10031)
 //1.14d: 0x004FA450
 D2WIN_DLL_DECL void __stdcall D2Win_10031(void* a1);

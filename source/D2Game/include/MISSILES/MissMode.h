@@ -226,6 +226,7 @@ int32_t __fastcall MISSMODE_SrvHit11_CreateHitSubmissiles(D2GameStrc* pGame, D2U
 int32_t __fastcall MISSMODE_SrvHit14_MeteorCenter_CatapultMeteor_RoyalStrikeMeteor(D2GameStrc* pGame, D2UnitStrc* pMissile, D2UnitStrc* pUnit);
 //D2Game.0x6FC5B910
 //1.14d: 0x005AAA90
+// Game uses pMissile in EAX and four callee-cleaned stack arguments (RET 0x10).
 void __fastcall MISSMODE_CreateMeteor_MoltenBoulderSubmissiles(D2GameStrc* pGame, D2UnitStrc* pMissile, int32_t nMissileId, int32_t nRange, int32_t nStep);
 //D2Game.0x6FC5BA50
 //1.14d: 0x005AAD40

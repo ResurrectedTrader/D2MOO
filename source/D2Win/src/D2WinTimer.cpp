@@ -8,11 +8,13 @@
 #pragma warning (disable : 28159)
 
 
+// The next firing of the repeating timers (D2Win_10182): one for all of them
 //1.10f: D2Win.0x6F96A8E0
 //1.14d: 0x00841B74
 uint32_t gdwTimeoutTickCount;
 
 
+// nTimeout: whole seconds for the default update (sub_6F8B1C60), milliseconds after D2Win_10182
 //D2Win.0x6F8B1B70
 //1.14d: 0x004FD9D0
 D2WinTimerStrc* __fastcall TIMER_Create(uint32_t nTimeout, int32_t(__stdcall* a2)(SMSGHANDLER_PARAMS*))
@@ -47,6 +49,7 @@ void __fastcall D2Win_10180(D2WinTimerStrc* pTimer)
 	pTimer->controlHeader.pfHandleVirtualKeyInput = nullptr;
 }
 
+// Makes the timer repeat every nTimeout milliseconds (sub_6F8B1CF0)
 //D2Win.0x6F8B1C30 (#10182)
 //1.14d: 0x004FDA50
 void __fastcall D2Win_10182(D2WinTimerStrc* pTimer)
@@ -55,6 +58,8 @@ void __fastcall D2Win_10182(D2WinTimerStrc* pTimer)
 	pTimer->controlHeader.pfInitialize = sub_6F8B1CF0;
 }
 
+// The default per-frame update (pfInitialize, run by D2Win_10019): once more than nTimeout whole seconds passed
+// since the creation, the callback runs on every frame; it never resets
 //D2Win.0x6F8B1C60
 //1.14d: 0x004FD860
 int32_t __fastcall sub_6F8B1C60(D2WinControlStrc* pControl)
@@ -84,6 +89,7 @@ int32_t __fastcall sub_6F8B1C60(D2WinControlStrc* pControl)
 	return 1;
 }
 
+// The repeating per-frame update (D2Win_10182)
 //D2Win.0x6F8B1CF0
 //1.14d: 0x004FD8F0
 int32_t __fastcall sub_6F8B1CF0(D2WinControlStrc* pControl)
@@ -115,6 +121,7 @@ int32_t __fastcall sub_6F8B1CF0(D2WinControlStrc* pControl)
 	return 1;
 }
 
+// VK_SPACE (key down) runs the callback at once
 //D2Win.0x6F8B1D70
 //1.14d: 0x004FD970
 int32_t __stdcall TIMER_HandleVirtualKeyInput(SMSGHANDLER_PARAMS* pMsg)

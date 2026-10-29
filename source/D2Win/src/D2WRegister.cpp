@@ -4,6 +4,7 @@
 #include <Storm.h>
 
 
+// nType: 0 SMsgRegisterMessage (not WM_COMMAND / WM_KEYUP / WM_KEYDOWN), 1 command, 2 key up, 3 key down
 //D2Win.0x6F8B1DC0 (#10020)
 //1.14d: 0x00506C40
 void __fastcall WREGISTER_RegisterCommand(HWND hWnd, int32_t nType, int32_t nId, void(__stdcall* pCallback)(SMSGHANDLER_PARAMS*))
