@@ -180,7 +180,7 @@ EXPORTS
 	D2Win_10177														@10177
 	D2Win_10178														@10178
 	D2Win_10179														@10179
-	D2Win_10180														@10180
+	TIMER_DisableSpaceKey												@10180
 	TIMER_Destroy													@10181
 	TIMER_SetRepeating												@10182
 	ARCHIVE_ShowInsertCinematicsDisc								@10183

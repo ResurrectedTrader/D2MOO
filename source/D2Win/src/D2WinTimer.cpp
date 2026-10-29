@@ -41,7 +41,7 @@ int32_t __fastcall TIMER_Destroy(D2WinControlStrc* pControl)
 
 //D2Win.0x6F8B1C00 (#10180)
 //1.14d: 0x004FD830
-void __fastcall D2Win_10180(D2WinTimerStrc* pTimer)
+void __fastcall TIMER_DisableSpaceKey(D2WinTimerStrc* pTimer)
 {
 	D2_ASSERT(pTimer->controlHeader.nType == D2WIN_TIMER);
 	pTimer->controlHeader.pfHandleVirtualKeyInput = nullptr;

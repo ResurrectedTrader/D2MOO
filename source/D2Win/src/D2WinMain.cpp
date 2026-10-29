@@ -79,7 +79,7 @@ D2CellFileStrc* gpBackgroundCellFile;
 D2CellFileStrc* gpCursorCellFile;
 //1.10f: D2Win.0x6F8BDF78
 //1.14d: 0x0072DDD4
-int32_t dword_6F8BDF78;
+int32_t gbRunMessageLoop;
 //1.10f: D2Win.0x6F8FE24C
 //1.14d: 0x007D55BC
 D2WinControlStrc* gpControlList_6F8FE24C;
@@ -121,10 +121,10 @@ DWORD gdwScreenshotTickCount_6F8FE28C;
 int32_t gnScreenshotCounter_6F8BDE1C;
 //1.10f: D2Win.0x6F8FE258
 //1.14d: 0x007D55C8
-D2WinEditBoxStrc* gpEditBox_6F8FE258;
+D2WinEditBoxStrc* gpNextFocusedEditBox;
 //1.10f: D2Win.0x6F8FE25C
 //1.14d: 0x007D55CC
-D2WinEditBoxStrc* dword_6F8FE25C;
+D2WinEditBoxStrc* gpFocusedEditBox;
 //1.10f: D2Win.0x6F8FE230
 //1.14d: 0x007D55A0
 int32_t gnCursorFrame;
@@ -205,9 +205,9 @@ BOOL __stdcall D2Win_InitializeSpriteCache(BOOL bWindowed, D2GameResolutionMode 
 	gpControlList_6F8FE24C = 0;
 	dword_6F8FE250 = 0;
 	dword_6F8FE254 = 0;
-	dword_6F8FE25C = 0;
+	gpFocusedEditBox = 0;
 	gpEscapeButton = 0;
-	gpEditBox_6F8FE258 = 0;
+	gpNextFocusedEditBox = 0;
 	gpfWndProc_6F8FE268 = 0;
 	dword_6F8FE264 = 0;
 	dword_6F8FE278 = 0;
@@ -382,7 +382,7 @@ void __stdcall D2Win_SetQuitCallback(int(*pfOnQuit)())
 //1.14d: 0x004F9190
 int __stdcall D2Win_StopMessageLoop()
 {
-	dword_6F8BDF78 = 0;
+	gbRunMessageLoop = 0;
 	return 1;
 }
 
@@ -395,14 +395,14 @@ int __stdcall D2Win_RunMessageLoop(void(__stdcall* pfOnFrame)(DWORD))
 	
 	DWORD dwTickCount = GetTickCount();
 
-	while (dword_6F8BDF78)
+	while (gbRunMessageLoop)
 	{
 		struct tagMSG Msg = {};
 
 		if (PeekMessageA(&Msg, 0, 0, 0, 0))
 		{
-			dword_6F8BDF78 = GetMessageA(&Msg, 0, 0, 0);
-			if (!dword_6F8BDF78 && gpfOnQuit)
+			gbRunMessageLoop = GetMessageA(&Msg, 0, 0, 0);
+			if (!gbRunMessageLoop && gpfOnQuit)
 			{
 				gpfOnQuit();
 			}
@@ -438,7 +438,7 @@ int __stdcall D2Win_RunMessageLoop(void(__stdcall* pfOnFrame)(DWORD))
 				D2Win_UpdateAndDraw();
 			}
 
-			dword_6F8FE25C = gpEditBox_6F8FE258;
+			gpFocusedEditBox = gpNextFocusedEditBox;
 
 			DWORD dwSleepMillis = std::min(nSleepMillis, 20);
 
@@ -455,7 +455,7 @@ int __stdcall D2Win_RunMessageLoop(void(__stdcall* pfOnFrame)(DWORD))
 
 	if (!dword_6F8FE280)
 	{
-		dword_6F8BDF78 = 1;
+		gbRunMessageLoop = 1;
 	}
 
 	return 0;
@@ -473,15 +473,15 @@ int __stdcall CONTROL_SetCellFile(D2WinControlStrc* pControl, D2CellFileStrc* pC
 //1.14d: 0x004F91C0
 int __stdcall CONTROL_SetFocusedEditBox(D2WinEditBoxStrc* pEditBox)
 {
-	if (gpEditBox_6F8FE258)
+	if (gpNextFocusedEditBox)
 	{
-		if (pEditBox != gpEditBox_6F8FE258)
+		if (pEditBox != gpNextFocusedEditBox)
 		{
-			EDITBOX_ClearSelection(gpEditBox_6F8FE258);
+			EDITBOX_ClearSelection(gpNextFocusedEditBox);
 		}
 	}
 
-	gpEditBox_6F8FE258 = pEditBox;
+	gpNextFocusedEditBox = pEditBox;
 
 
 	return 1;
@@ -491,7 +491,7 @@ int __stdcall CONTROL_SetFocusedEditBox(D2WinEditBoxStrc* pEditBox)
 //1.14d: 0x004F9200
 D2WinEditBoxStrc* __stdcall CONTROL_GetFocusedEditBox()
 {
-	return dword_6F8FE25C;
+	return gpFocusedEditBox;
 }
 
 //D2Win.0x6F8AD120
@@ -519,14 +519,14 @@ int __stdcall CONTROL_AppendToList(D2WinControlStrc* pControl)
 //1.14d: 0x004F9310
 int __stdcall CONTROL_RemoveFromList(D2WinControlStrc* pControl)
 {
-	if (dword_6F8FE25C == (D2WinEditBoxStrc*)pControl)
+	if (gpFocusedEditBox == (D2WinEditBoxStrc*)pControl)
 	{
-		dword_6F8FE25C = nullptr;
+		gpFocusedEditBox = nullptr;
 	}
 
-	if (gpEditBox_6F8FE258 == (D2WinEditBoxStrc*)pControl)
+	if (gpNextFocusedEditBox == (D2WinEditBoxStrc*)pControl)
 	{
-		gpEditBox_6F8FE258 = nullptr;
+		gpNextFocusedEditBox = nullptr;
 	}
 
 	if (dword_6F8FE264 == pControl)
@@ -1030,15 +1030,15 @@ void __stdcall D2Win_COMMANDS_Char_6F8ADA80(SMSGHANDLER_PARAMS* pMsg)
 {
 
 	D2WinControlStrc* pControl = dword_6F8FE264;
-	if (dword_6F8FE25C)
+	if (gpFocusedEditBox)
 	{
 		if (dword_6F8FE264)
 		{
 			for (D2WinControlStrc* i = dword_6F8FE264; i; i = i->pNext)
 			{
-				if ((D2WinEditBoxStrc*)i == dword_6F8FE25C)
+				if ((D2WinEditBoxStrc*)i == gpFocusedEditBox)
 				{
-					if (D2Win_10074(dword_6F8FE25C, pMsg->wParam))
+					if (D2Win_10074(gpFocusedEditBox, pMsg->wParam))
 					{
 						SMsgBreakHandlerChain(pMsg);
 						// Should we return SMsgBreakHandlerChain's result?
@@ -1052,7 +1052,7 @@ void __stdcall D2Win_COMMANDS_Char_6F8ADA80(SMSGHANDLER_PARAMS* pMsg)
 		}
 		else
 		{
-			if (D2Win_10074(dword_6F8FE25C, pMsg->wParam))
+			if (D2Win_10074(gpFocusedEditBox, pMsg->wParam))
 			{
 				SMsgBreakHandlerChain(pMsg);
 				// Should we return SMsgBreakHandlerChain's result?
@@ -1118,15 +1118,15 @@ void __stdcall D2Win_COMMANDS_VirtualKey_6F8ADB50(SMSGHANDLER_PARAMS* pMsg)
 {
 	//TODO: v4
 	D2WinControlStrc* pControl = dword_6F8FE264;
-	if (dword_6F8FE25C)
+	if (gpFocusedEditBox)
 	{
 		if (dword_6F8FE264)
 		{
 			for (D2WinControlStrc* i = dword_6F8FE264; i; i = i->pNext)
 			{
-				if ((D2WinEditBoxStrc*)i == dword_6F8FE25C)
+				if ((D2WinEditBoxStrc*)i == gpFocusedEditBox)
 				{
-					if (EDITBOX_HandleKeyDown(dword_6F8FE25C, pMsg->wParam))
+					if (EDITBOX_HandleKeyDown(gpFocusedEditBox, pMsg->wParam))
 					{
 						SMsgBreakHandlerChain(pMsg);
 						// Should we return SMsgBreakHandlerChain's result?$
@@ -1139,7 +1139,7 @@ void __stdcall D2Win_COMMANDS_VirtualKey_6F8ADB50(SMSGHANDLER_PARAMS* pMsg)
 		}
 		else
 		{
-			if (EDITBOX_HandleKeyDown(dword_6F8FE25C, pMsg->wParam))
+			if (EDITBOX_HandleKeyDown(gpFocusedEditBox, pMsg->wParam))
 			{
 				SMsgBreakHandlerChain(pMsg);
 				// Should we return SMsgBreakHandlerChain's result?
