@@ -2466,7 +2466,7 @@ void __fastcall D2GAME_STORES_FillGamble_6FCCA9F0(D2GameStrc* pGame, D2UnitStrc*
         return;
     }
 
-    const uint32_t nHighQualityChance = pDifficultyLevelsTxtRecord->dwGambleUniq + pDifficultyLevelsTxtRecord->dwGambleSet + pDifficultyLevelsTxtRecord->dwGambleRare;
+    const int32_t nHighQualityChance = (int32_t)(pDifficultyLevelsTxtRecord->dwGambleUniq + pDifficultyLevelsTxtRecord->dwGambleSet + pDifficultyLevelsTxtRecord->dwGambleRare);
 
     if (!gnRingItemId)
     {
@@ -2541,7 +2541,7 @@ void __fastcall D2GAME_STORES_FillGamble_6FCCA9F0(D2GameStrc* pGame, D2UnitStrc*
                 D2ItemsTxt* pUberItemsTxtRecord = DATATBLS_GetItemRecordFromItemCode(pItemsTxtRecord->dwUberCode, &nUberItemId);
                 if (pUberItemsTxtRecord)
                 {
-                    const uint32_t nUberItemChance = pDifficultyLevelsTxtRecord->dwGambleUber * (nItemLevel - pUberItemsTxtRecord->nLevel) + 1;
+                    const int32_t nUberItemChance = (int32_t)(pDifficultyLevelsTxtRecord->dwGambleUber * (nItemLevel - pUberItemsTxtRecord->nLevel) + 1);
                     if (nUberItemChance > 0)
                     {
                         if (ITEMS_RollLimitedRandomNumber(pSeed, 10000) < nUberItemChance)
@@ -2556,7 +2556,7 @@ void __fastcall D2GAME_STORES_FillGamble_6FCCA9F0(D2GameStrc* pGame, D2UnitStrc*
                                 D2ItemsTxt* pUltraItemsTxtRecord = DATATBLS_GetItemRecordFromItemCode(pItemsTxtRecord->dwUltraCode, &nUltraItemId);
                                 if (pUltraItemsTxtRecord)
                                 {
-                                    const uint32_t nUltraItemChance = pDifficultyLevelsTxtRecord->dwGambleUltra * (nItemLevel - pUltraItemsTxtRecord->nLevel) + 1;
+                                    const int32_t nUltraItemChance = (int32_t)(pDifficultyLevelsTxtRecord->dwGambleUltra * (nItemLevel - pUltraItemsTxtRecord->nLevel) + 1);
                                     if (nUltraItemChance > 0 && (ITEMS_RollRandomNumber(pSeed) % 10000) < nUltraItemChance)
                                     {
                                         nItemId = nUltraItemId;
@@ -2572,12 +2572,12 @@ void __fastcall D2GAME_STORES_FillGamble_6FCCA9F0(D2GameStrc* pGame, D2UnitStrc*
         int32_t nItemQuality = ITEMQUAL_MAGIC;
         if (nHighQualityChance > 0)
         {
-            const uint32_t nQualityRoll = ITEMS_RollRandomNumber(pSeed) % 100000;
+            const int32_t nQualityRoll = ITEMS_RollRandomNumber(pSeed) % 100000;
             if (nQualityRoll < nHighQualityChance)
             {
-                if (nQualityRoll >= pDifficultyLevelsTxtRecord->dwGambleUniq)
+                if (nQualityRoll >= (int32_t)pDifficultyLevelsTxtRecord->dwGambleUniq)
                 {
-                    nItemQuality = (nQualityRoll >= (pDifficultyLevelsTxtRecord->dwGambleUniq + pDifficultyLevelsTxtRecord->dwGambleSet)) ? ITEMQUAL_RARE : ITEMQUAL_SET;
+                    nItemQuality = (nQualityRoll >= (int32_t)(pDifficultyLevelsTxtRecord->dwGambleUniq + pDifficultyLevelsTxtRecord->dwGambleSet)) ? ITEMQUAL_RARE : ITEMQUAL_SET;
                 }
                 else
                 {
