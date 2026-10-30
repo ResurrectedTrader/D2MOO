@@ -12,7 +12,7 @@ struct D2WinImageClickRectStrc
 	int32_t nY;										//0x04
 	int32_t nWidth;									//0x08
 	int32_t nHeight;								//0x0C
-	int32_t(__stdcall* pCallback)(SMSGHANDLER_PARAMS*);	//0x14
+	int32_t(__stdcall* pCallback)(SMSGHANDLER_PARAMS*);	//0x10 A null callback ends the array
 };
 
 struct D2WinImageStrc

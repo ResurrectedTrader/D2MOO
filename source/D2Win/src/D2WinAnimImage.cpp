@@ -233,7 +233,7 @@ int32_t __fastcall ANIMIMAGE_Draw(D2WinControlStrc* pControl)
 	{
 		gfxData.pCellFile = pCellFile1;
 		gfxData.nFrame = pAnimImage->nFrame;
-		TEXTURE_CelDraw(&gfxData, nX, nY, -1, pAnimImage->eDrawMode, 0); // TODO: Should probably be eDrawMode instead of pAnimImage->pDrawMode
+		TEXTURE_CelDraw(&gfxData, nX, nY, -1, pAnimImage->eDrawMode, 0); // The first cel file draws with the control's draw mode, only the second one with the descriptor's
 	}
 
 	if (pCellFile2)

@@ -25,7 +25,7 @@ enum D2ControlTypes
 struct D2CellFileStrc;
 
 #pragma pack(push, 1)
-
+// (nImageX, nImageY) is the bottom-left corner: a point is inside when nImageX <= x < nImageX + nWidth and nImageY - nHeight <= y < nImageY
 struct D2WinControlStrc
 {
 	int32_t nType;															//0x00

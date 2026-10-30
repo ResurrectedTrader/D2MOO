@@ -46,7 +46,7 @@ struct D2WinTextBoxStrc
 	int32_t nCurrentLine;							//0x60
 	int32_t nNumColumns;							//0x64
 	int32_t nColumnOffsets[5];								//0x68
-	int32_t nColumnAlignFlags[5];								//0x7C
+	int32_t nColumnAlignFlags[5];								//0x7C 2: centred, 0x10: right-aligned in the column
 	D2WinScrollBarStrc* pScrollBar;					//0x90
 	Font eFont;										//0x94
 	int32_t field_98;								//0x98
