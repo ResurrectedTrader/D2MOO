@@ -17,6 +17,7 @@
 #include <GAME/Game.h>
 #include <Units/Units.h>
 
+#include <Fixtures/DataTbls/Fixtures.h>
 
 TEST_SUITE("D2ItemsTests")
 {
@@ -1312,21 +1313,19 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD98C60 (#10780)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(ItemTypesTxtFixture<NoOpFixture>, "D2Common.0x6FD98C60 (#10780)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_GetAmmoTypeFromItemType, dll_base + 0x00058C60);
-		
-		SUBCASE("")
-		{
-			int nItemType{};
 
-			// Call both implementations
+		// A row loaded without a Shoots column holds the 0xFFFF sentinel
+		itemtypes_txt[1].wShoots = 0xFFFF;
+		for (int nItemType = 0; nItemType < itemtypes_record_count; ++nItemType)
+		{
+			CAPTURE(nItemType);
 			const auto moo_result = sut(nItemType);
 			const auto original_result = original(nItemType);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
 		}
 	}
 	
@@ -1362,21 +1361,19 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD98D20 (#10782)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(ItemTypesTxtFixture<NoOpFixture>, "D2Common.0x6FD98D20 (#10782)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_GetQuiverTypeFromItemType, dll_base + 0x00058D20);
-		
-		SUBCASE("")
-		{
-			int nItemType{};
 
-			// Call both implementations
+		// A row loaded without a Quiver column holds the 0xFFFF sentinel
+		itemtypes_txt[1].wQuiver = 0xFFFF;
+		for (int nItemType = 0; nItemType < itemtypes_record_count; ++nItemType)
+		{
+			CAPTURE(nItemType);
 			const auto moo_result = sut(nItemType);
 			const auto original_result = original(nItemType);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
 		}
 	}
 	
@@ -2204,39 +2201,77 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD99DB0" * doctest::skip(""))
+	TEST_CASE_FIXTURE(ItemStatCostTxtFixture<SkillsTxtFixture<SetItemsTxtFixture<UniqueItemsTxtFixture<ItemsTxtFixture<NoOpFixture>>>>>, "D2Common.0x6FD99DB0")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_GetRequiredLevel, dll_base + 0x00059DB0);
-		
-		SUBCASE("")
+
+		constexpr int nSkillId = 6;
+
+		struct TestItem
 		{
-			// Input data
-			D2UnitStrc moo_pItem{};
-			D2UnitStrc moo_pPlayer{};
-			D2UnitStrc original_pItem{};
-			D2UnitStrc original_pPlayer{};
+			D2UnitStrc tItem{};
+			D2ItemDataStrc tItemData{};
+			D2StatListExStrc tStatListEx{};
+			D2StatStrc tStat{};
+		};
 
-			const auto setup_data = [](
-				D2UnitStrc& pItem,
-				D2UnitStrc& pPlayer
-			) {
-				// TODO: Setup as needed
-			};
+		const auto setup_data = [&](TestItem& item, int nQuality, int nFileIndex, int nSkillStat)
+		{
+			item.tItem.dwUnitType = UNIT_ITEM;
+			item.tItem.dwClassId = 0;
+			item.tItem.pItemData = &item.tItemData;
+			item.tItemData.dwQualityNo = nQuality;
+			item.tItemData.dwFileIndex = nFileIndex;
 
-			setup_data(moo_pItem, moo_pPlayer);
-			setup_data(original_pItem, original_pPlayer);
+			if (nSkillStat >= 0)
+			{
+				item.tStat.nStat = nSkillStat;
+				item.tStat.nLayer = nSkillId;
+				item.tStat.nValue = 1;
+				item.tStatListEx.dwFlags = STATLIST_EXTENDED;
+				item.tStatListEx.FullStats.pStat = &item.tStat;
+				item.tStatListEx.FullStats.nStatCount = 1;
+				item.tStatListEx.FullStats.nCapacity = 1;
+				item.tItem.pStatListEx = &item.tStatListEx;
+			}
+		};
 
-			// Call both implementations
-			const auto moo_result = sut(&moo_pItem, &moo_pPlayer);
-			const auto original_result = original(&original_pItem, &original_pPlayer);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+		const auto compare = [&](int nQuality, int nFileIndex, int nSkillStat)
+		{
+			TestItem moo_item;
+			TestItem original_item;
+			setup_data(moo_item, nQuality, nFileIndex, nSkillStat);
+			setup_data(original_item, nQuality, nFileIndex, nSkillStat);
 
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pItem, original_pItem, "Comparing pItem");
-			SKIP_MOO_CHECK_EQ(moo_pPlayer, original_pPlayer, "Comparing pPlayer");
+			const auto moo_result = sut(&moo_item.tItem, nullptr);
+			const auto original_result = original(&original_item.tItem, nullptr);
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+		};
+
+		// The loaders keep these as WORDs with no lower bound, so -1 is a valid requirement
+		SUBCASE("Unique level requirement -1")
+		{
+			uniqueitems_txt[0].wLvlReq = 0xFFFF;
+			compare(ITEMQUAL_UNIQUE, 0, -1);
+		}
+
+		SUBCASE("Set level requirement -1")
+		{
+			setitems_txt[0].wLvlReq = 0xFFFF;
+			compare(ITEMQUAL_SET, 0, -1);
+		}
+
+		SUBCASE("Single skill level requirement -1")
+		{
+			skills_txt[nSkillId].wReqLevel = 0xFFFF;
+			compare(ITEMQUAL_NORMAL, 0, STAT_ITEM_SINGLESKILL);
+		}
+
+		SUBCASE("Non-class skill level requirement -1")
+		{
+			skills_txt[nSkillId].wReqLevel = 0xFFFF;
+			compare(ITEMQUAL_NORMAL, 0, STAT_ITEM_NONCLASSSKILL);
 		}
 	}
 	
