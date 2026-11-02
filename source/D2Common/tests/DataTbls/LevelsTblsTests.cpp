@@ -14,6 +14,8 @@
 
 #include <DataTbls/LevelsTbls.h>
 
+#include <Fixtures/DataTbls/Fixtures.h>
+
 
 TEST_SUITE("LevelsTblsTests")
 {
@@ -121,23 +123,63 @@ TEST_SUITE("LevelsTblsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD604F0 (#11247)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(LevelsTxtFixture<NoOpFixture>, "D2Common.0x6FD604F0 (#11247)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(DATATBLS_GetMonsterLevelInArea, dll_base + 0x000204F0);
-		
-		SUBCASE("")
-		{
-			int nLevelId{};
-			uint8_t nDifficulty{};
-			BOOL bExpansion{};
 
-			// Call both implementations
-			const auto moo_result = sut(nLevelId, nDifficulty, bExpansion);
-			const auto original_result = original(nLevelId, nDifficulty, bExpansion);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+		SUBCASE("Stock records")
+		{
+			for (int nLevelId = -1; nLevelId <= levels_record_count; ++nLevelId)
+			{
+				for (int nDifficulty = 0; nDifficulty <= 3; ++nDifficulty)
+				{
+					for (BOOL bExpansion = FALSE; bExpansion <= TRUE; ++bExpansion)
+					{
+						CAPTURE(nLevelId);
+						CAPTURE(nDifficulty);
+						CAPTURE(bExpansion);
+
+						// Call both implementations
+						const auto moo_result = sut(nLevelId, static_cast<uint8_t>(nDifficulty), bExpansion);
+						const auto original_result = original(nLevelId, static_cast<uint8_t>(nDifficulty), bExpansion);
+
+						// Compare return values
+						MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+					}
+				}
+			}
+		}
+
+		SUBCASE("Monster levels of -1")
+		{
+			// Levels.txt admits -1 in the MonLvl columns
+			const int nLevelId = 1;
+			D2LevelsTxt* pLevelsTxtRecord = &levels_txt[nLevelId];
+			const auto saved_record = *pLevelsTxtRecord;
+			for (int i = 0; i < 3; ++i)
+			{
+				pLevelsTxtRecord->wMonLvl[i] = -1;
+				pLevelsTxtRecord->wMonLvlEx[i] = static_cast<int16_t>(0x8000);
+			}
+
+			for (int nDifficulty = 0; nDifficulty < 3; ++nDifficulty)
+			{
+				for (BOOL bExpansion = FALSE; bExpansion <= TRUE; ++bExpansion)
+				{
+					CAPTURE(nDifficulty);
+					CAPTURE(bExpansion);
+
+					// Call both implementations
+					const auto moo_result = sut(nLevelId, static_cast<uint8_t>(nDifficulty), bExpansion);
+					const auto original_result = original(nLevelId, static_cast<uint8_t>(nDifficulty), bExpansion);
+
+					// Compare return values
+					MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+				}
+			}
+
+			*pLevelsTxtRecord = saved_record;
 		}
 	}
 	

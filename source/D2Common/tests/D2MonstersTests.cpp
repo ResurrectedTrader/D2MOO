@@ -9,6 +9,7 @@
 #include <cstdarg>
 #include <filesystem>
 #include <set>
+#include <vector>
 
 #include <TestDefinitions.h>
 #include <TestUtilities.h>
@@ -322,6 +323,47 @@ TEST_SUITE("D2MonstersTests")
 		}
 	}
 
+	TEST_CASE_FIXTURE(ItemStatCostTxtFixture<NoOpFixture>, "D2Common.0x6FDA5220 (#11083) - cost overflowing to a negative value")
+	{
+		// Set up function pointers
+		const auto [sut, original] = make_function_pair(MONSTERS_GetHirelingResurrectionCost, dll_base + 0x00065220);
+
+		for (const int level : { 20000, 30000, 46341, 65535 })
+		{
+			CAPTURE(level);
+
+			D2UnitStrc moo_pHireling{};
+			D2StatListExStrc moo_pStatListEx{};
+			D2StatStrc moo_pStat{};
+			D2UnitStrc original_pHireling{};
+			D2StatListExStrc original_pStatListEx{};
+			D2StatStrc original_pStat{};
+
+			const auto setup_data = [level](
+				D2UnitStrc& pHireling,
+				D2StatListExStrc& pStatListEx,
+				D2StatStrc& pStat
+				) {
+					pHireling.pStatListEx = &pStatListEx;
+					pStatListEx.dwFlags |= STATLIST_EXTENDED;
+					pStatListEx.FullStats.pStat = &pStat;
+					pStatListEx.FullStats.nStatCount = 1;
+					pStat.nStat = STAT_LEVEL;
+					pStat.nValue = level;
+				};
+
+			setup_data(moo_pHireling, moo_pStatListEx, moo_pStat);
+			setup_data(original_pHireling, original_pStatListEx, original_pStat);
+
+			// Call both implementations
+			const auto moo_result = sut(&moo_pHireling);
+			const auto original_result = original(&original_pHireling);
+
+			// Compare return values
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+		}
+	}
+
 	TEST_CASE_FIXTURE(MonStats2TxtFixture<MonStatsTxtFixture<NoOpFixture>>, "D2Common.0x6FDA5270 (#11068)")
 	{
 		// Set up function pointers
@@ -454,6 +496,69 @@ TEST_SUITE("D2MonstersTests")
 				}
 			}
 		}
+	}
+
+	TEST_CASE_FIXTURE(MonStats2TxtFixture<MonStatsTxtFixture<NoOpFixture>>, "D2Common.0x6FDA52F0 (#11069) and 0x6FDA5450 (#11070) - CompCode index above 127")
+	{
+		// Set up function pointers
+		const auto [sut_11069, original_11069] = make_function_pair(D2Common_11069, dll_base + 0x000652F0);
+		const auto [sut_11070, original_11070] = make_function_pair(D2Common_11070, dll_base + 0x00065450);
+
+		// The table starts 128 rows into the buffer, so that both CompCode index 128 and -128 read a distinct code
+		std::vector<D2CompCodeTxt> compcode_buffer(384);
+		for (size_t i = 0; i < compcode_buffer.size(); ++i)
+		{
+			compcode_buffer[i].dwCode = 0x1000 + static_cast<uint32_t>(i);
+		}
+		sgptDataTables->pCompCodeTxt = &compcode_buffer[128];
+		sgptDataTables->nCompCodeTxtRecordCount = 256;
+		const auto original_compcode = reinterpret_cast<D2CompCodeTxt**>(dll_base + 0x000A9608 + 0x0000007C);
+		const auto original_compcode_count = reinterpret_cast<int*>(dll_base + 0x000A9608 + 0x00000084);
+		*original_compcode = sgptDataTables->pCompCodeTxt;
+		*original_compcode_count = sgptDataTables->nCompCodeTxtRecordCount;
+
+		const int nMonsterId = 0;
+		D2MonStats2Txt* pMonStats2TxtRecord = UNITS_GetMonStats2TxtRecordFromMonsterId(nMonsterId);
+		REQUIRE(pMonStats2TxtRecord != nullptr);
+
+		const auto saved_record = *pMonStats2TxtRecord;
+		pMonStats2TxtRecord->nComponentChoiceCounts[0] = 1;
+		pMonStats2TxtRecord->unk0x26[0].nComposit[0] = 0x80;
+
+		{
+			const auto moo_result = sut_11070(nMonsterId, 0, 0);
+			const auto original_result = original_11070(nMonsterId, 0, 0);
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing D2Common_11070 results");
+		}
+
+		{
+			D2UnitStrc moo_pMonster{};
+			D2DynamicPathStrc moo_pDynamicPath{};
+			D2UnitStrc original_pMonster{};
+			D2DynamicPathStrc original_pDynamicPath{};
+
+			const auto setup_data = [nMonsterId](
+				D2UnitStrc& pMonster,
+				D2DynamicPathStrc& pDynamicPath
+				) {
+					pMonster.dwUnitType = UNIT_MONSTER;
+					pMonster.dwClassId = nMonsterId;
+					pMonster.pDynamicPath = &pDynamicPath;
+				};
+
+			setup_data(moo_pMonster, moo_pDynamicPath);
+			setup_data(original_pMonster, original_pDynamicPath);
+
+			const auto moo_result = sut_11069(&moo_pMonster, 0, 0);
+			const auto original_result = original_11069(&original_pMonster, 0, 0);
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing D2Common_11069 results");
+		}
+
+		*pMonStats2TxtRecord = saved_record;
+		sgptDataTables->pCompCodeTxt = nullptr;
+		sgptDataTables->nCompCodeTxtRecordCount = 0;
+		*original_compcode = nullptr;
+		*original_compcode_count = 0;
 	}
 
 	TEST_CASE_FIXTURE(MonStatsTxtFixture<NoOpFixture>, "D2Common.0x6FDA54E0 (#11050)")

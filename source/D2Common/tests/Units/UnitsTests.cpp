@@ -8,6 +8,7 @@
 
 #include <cstdarg>
 #include <filesystem>
+#include <utility>
 
 #include <TestDefinitions.h>
 #include <TestUtilities.h>
@@ -16,7 +17,10 @@
 #include <DataTbls/ObjectsTbls.h>
 #include <Drlg/D2DrlgDrlg.h>
 #include <GAME/Event.h>
+#include <Units/Object.h>
 #include <Units/Units.h>
+
+#include <Fixtures/DataTbls/Fixtures.h>
 
 
 TEST_SUITE("UnitsTests")
@@ -394,13 +398,21 @@ TEST_SUITE("UnitsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FDBD900 (#10336)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(MonStats2TxtFixture<MonStatsTxtFixture<NoOpFixture>>, "D2Common.0x6FDBD900 (#10336)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(UNITS_GetUnitSizeX, dll_base + 0x0007D900);
-		
-		SUBCASE("")
+
+		D2MonStats2Txt* pMonStats2TxtRecord = UNITS_GetMonStats2TxtRecordFromMonsterId(0);
+		REQUIRE(pMonStats2TxtRecord != nullptr);
+		const auto saved_size = pMonStats2TxtRecord->nSizeX;
+
+		// MonStats2 size bytes above 127 are loaded as is
+		for (const int size : { (int)(uint8_t)saved_size, 0x7F, 0x80, 0xFF })
 		{
+			CAPTURE(size);
+			pMonStats2TxtRecord->nSizeX = static_cast<int8_t>(size);
+
 			// Input data
 			D2UnitStrc moo_pUnit{};
 			D2UnitStrc original_pUnit{};
@@ -408,7 +420,8 @@ TEST_SUITE("UnitsTests")
 			const auto setup_data = [](
 				D2UnitStrc& pUnit
 			) {
-				// TODO: Setup as needed
+				pUnit.dwUnitType = UNIT_MONSTER;
+				pUnit.dwClassId = 0;
 			};
 
 			setup_data(moo_pUnit);
@@ -417,22 +430,32 @@ TEST_SUITE("UnitsTests")
 			// Call both implementations
 			const auto moo_result = sut(&moo_pUnit);
 			const auto original_result = original(&original_pUnit);
-			
+
 			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
 
 			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pUnit, original_pUnit, "Comparing pUnit");
+			MOO_CHECK_EQ(moo_pUnit, original_pUnit, "Comparing pUnit");
 		}
+
+		pMonStats2TxtRecord->nSizeX = saved_size;
 	}
-	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FDBDA00 (#10337)" * doctest::skip(""))
+
+	TEST_CASE_FIXTURE(MonStats2TxtFixture<MonStatsTxtFixture<NoOpFixture>>, "D2Common.0x6FDBDA00 (#10337)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(UNITS_GetUnitSizeY, dll_base + 0x0007DA00);
-		
-		SUBCASE("")
+
+		D2MonStats2Txt* pMonStats2TxtRecord = UNITS_GetMonStats2TxtRecordFromMonsterId(0);
+		REQUIRE(pMonStats2TxtRecord != nullptr);
+		const auto saved_size = pMonStats2TxtRecord->nSizeY;
+
+		// MonStats2 size bytes above 127 are loaded as is
+		for (const int size : { (int)(uint8_t)saved_size, 0x7F, 0x80, 0xFF })
 		{
+			CAPTURE(size);
+			pMonStats2TxtRecord->nSizeY = static_cast<int8_t>(size);
+
 			// Input data
 			D2UnitStrc moo_pUnit{};
 			D2UnitStrc original_pUnit{};
@@ -440,7 +463,8 @@ TEST_SUITE("UnitsTests")
 			const auto setup_data = [](
 				D2UnitStrc& pUnit
 			) {
-				// TODO: Setup as needed
+				pUnit.dwUnitType = UNIT_MONSTER;
+				pUnit.dwClassId = 0;
 			};
 
 			setup_data(moo_pUnit);
@@ -449,13 +473,15 @@ TEST_SUITE("UnitsTests")
 			// Call both implementations
 			const auto moo_result = sut(&moo_pUnit);
 			const auto original_result = original(&original_pUnit);
-			
+
 			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
 
 			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pUnit, original_pUnit, "Comparing pUnit");
+			MOO_CHECK_EQ(moo_pUnit, original_pUnit, "Comparing pUnit");
 		}
+
+		pMonStats2TxtRecord->nSizeY = saved_size;
 	}
 	
 	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FDBDB10 (#10333)" * doctest::skip(""))
@@ -4196,40 +4222,86 @@ TEST_SUITE("UnitsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FDC2910 (#11307)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(MonStats2TxtFixture<MonStatsTxtFixture<NoOpFixture>>, "D2Common.0x6FDC2910 (#11307)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(UNITS_IsObjectInInteractRange, dll_base + 0x00082910);
-		
-		SUBCASE("")
+
+		D2MonStats2Txt* pMonStats2TxtRecord = UNITS_GetMonStats2TxtRecordFromMonsterId(0);
+		REQUIRE(pMonStats2TxtRecord != nullptr);
+		const auto saved_size_x = pMonStats2TxtRecord->nSizeX;
+		const auto saved_size_y = pMonStats2TxtRecord->nSizeY;
+
+		// A 2x2 object at (100,100)
+		D2ObjectsTxt objects_txt_record{};
+		objects_txt_record.dwSizeX = 2;
+		objects_txt_record.dwSizeY = 2;
+
+		// The actor's width decides the corner test: a monster at (97,97) is in range when it is wider than two
+		// (as an unsigned comparison, so a MonStats2 size byte above 127 is wide as well)
+		const std::pair<uint8_t, uint8_t> actor_sizes[] = { { 3, 1 }, { 1, 3 }, { 2, 2 }, { 0x80, 1 }, { 0xFF, 3 } };
+		for (const auto& [size_x, size_y] : actor_sizes)
 		{
-			// Input data
-			D2UnitStrc moo_pUnit{};
-			D2UnitStrc moo_pObject{};
-			D2UnitStrc original_pUnit{};
-			D2UnitStrc original_pObject{};
+			CAPTURE(size_x);
+			CAPTURE(size_y);
+			pMonStats2TxtRecord->nSizeX = static_cast<int8_t>(size_x);
+			pMonStats2TxtRecord->nSizeY = static_cast<int8_t>(size_y);
 
-			const auto setup_data = [](
-				D2UnitStrc& pUnit,
-				D2UnitStrc& pObject
-			) {
-				// TODO: Setup as needed
-			};
+			for (int x = 95; x <= 105; ++x)
+			{
+				for (int y = 95; y <= 105; ++y)
+				{
+					CAPTURE(x);
+					CAPTURE(y);
 
-			setup_data(moo_pUnit, moo_pObject);
-			setup_data(original_pUnit, original_pObject);
+					// Input data
+					D2UnitStrc moo_pUnit{};
+					D2DynamicPathStrc moo_pDynamicPath{};
+					D2UnitStrc moo_pObject{};
+					D2StaticPathStrc moo_pStaticPath{};
+					D2ObjectDataStrc moo_pObjectData{};
+					D2UnitStrc original_pUnit{};
+					D2DynamicPathStrc original_pDynamicPath{};
+					D2UnitStrc original_pObject{};
+					D2StaticPathStrc original_pStaticPath{};
+					D2ObjectDataStrc original_pObjectData{};
 
-			// Call both implementations
-			const auto moo_result = sut(&moo_pUnit, &moo_pObject);
-			const auto original_result = original(&original_pUnit, &original_pObject);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+					const auto setup_data = [x, y, &objects_txt_record](
+						D2UnitStrc& pUnit,
+						D2DynamicPathStrc& pDynamicPath,
+						D2UnitStrc& pObject,
+						D2StaticPathStrc& pStaticPath,
+						D2ObjectDataStrc& pObjectData
+					) {
+						pUnit.dwUnitType = UNIT_MONSTER;
+						pUnit.dwClassId = 0;
+						pUnit.pDynamicPath = &pDynamicPath;
+						pDynamicPath.tGameCoords.wPosX = x;
+						pDynamicPath.tGameCoords.wPosY = y;
 
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pUnit, original_pUnit, "Comparing pUnit");
-			SKIP_MOO_CHECK_EQ(moo_pObject, original_pObject, "Comparing pObject");
+						pObject.dwUnitType = UNIT_OBJECT;
+						pObject.pStaticPath = &pStaticPath;
+						pObject.pObjectData = &pObjectData;
+						pStaticPath.tGameCoords.nX = 100;
+						pStaticPath.tGameCoords.nY = 100;
+						pObjectData.pObjectTxt = &objects_txt_record;
+					};
+
+					setup_data(moo_pUnit, moo_pDynamicPath, moo_pObject, moo_pStaticPath, moo_pObjectData);
+					setup_data(original_pUnit, original_pDynamicPath, original_pObject, original_pStaticPath, original_pObjectData);
+
+					// Call both implementations
+					const auto moo_result = sut(&moo_pUnit, &moo_pObject);
+					const auto original_result = original(&original_pUnit, &original_pObject);
+
+					// Compare return values
+					MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+				}
+			}
 		}
+
+		pMonStats2TxtRecord->nSizeX = saved_size_x;
+		pMonStats2TxtRecord->nSizeY = saved_size_y;
 	}
 	
 	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FDC2C80" * doctest::skip(""))
