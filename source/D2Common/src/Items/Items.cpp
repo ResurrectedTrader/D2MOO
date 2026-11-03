@@ -7667,8 +7667,6 @@ BOOL __fastcall sub_6FDA4380(D2UnitStrc* pItem, unsigned int nSetItemMask)
 			return TRUE;
 		}
 
-		// The original stops before ITEMSET6. With nBonuses == 0 it starts at gnItemSetStates[-1], which holds no state
-		// (0 in 1.10f, 0xD2F in 1.14d), so starting at 0 gives the same result without the out-of-bounds read.
 		for (int i = nBonuses > 0 ? nBonuses - 1 : 0; i < 5; ++i)
 		{
 			D2Common_10574(pItem, gnItemSetStates[i], TRUE);

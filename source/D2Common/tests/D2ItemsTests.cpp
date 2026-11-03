@@ -5505,11 +5505,23 @@ TEST_SUITE("D2ItemsTests")
 
 			// Compare potentially modified input data
 			MOO_CHECK_EQ(moo_data.pSetStatList.dwFlags, original_data.pSetStatList.dwFlags, "Comparing pSetStatList.dwFlags");
+
+			const auto get_links = [](SetItem& data)
+			{
+				return std::to_string(data.pStatListEx.pMyLastList == &data.pSetStatList)
+					+ std::to_string(data.pStatListEx.pMyStats == &data.pSetStatList)
+					+ std::to_string(data.pSetStatList.pParent == &data.pStatListEx)
+					+ std::to_string(data.pSetStatList.pUnit == &data.pItem);
+			};
+			std::string moo_links = get_links(moo_data);
+			std::string original_links = get_links(original_data);
+			MOO_CHECK_EQ(moo_links, original_links, "Comparing stat list links");
 		};
 
+		// With no bonus the original also updates gnItemSetStates[-1], which holds STATE_NONE
 		for (unsigned int nSetItemMask = 0; nSetItemMask < 64; ++nSetItemMask)
 		{
-			for (const int nState : { STATE_ITEMSET1, STATE_ITEMSET2, STATE_ITEMSET3, STATE_ITEMSET4, STATE_ITEMSET5, STATE_ITEMSET6 })
+			for (const int nState : { STATE_NONE, STATE_ITEMSET1, STATE_ITEMSET2, STATE_ITEMSET3, STATE_ITEMSET4, STATE_ITEMSET5, STATE_ITEMSET6 })
 			{
 				CAPTURE(nSetItemMask);
 				CAPTURE(nState);
