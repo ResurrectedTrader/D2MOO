@@ -4892,8 +4892,8 @@ BOOL __stdcall ITEMS_IsEthereal(D2UnitStrc* pItem)
 }
 
 //D2Common.0x6FDA0370 (#10883)
-//1.14d: 0x0062AE20
 #if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+//1.14d: 0x0062AE20
 BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, D2ItemSaveStrc* pItemSave, uint32_t dwVersion)
 #else
 BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, D2ItemSaveStrc* pItemSave)
@@ -4962,7 +4962,6 @@ BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t
 
 #if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
 //1.14d: 0x0062E410
-// The four-argument form the client and most of the server call: forwards with the current save version (push 60h at 0x0062E41C)
 BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, D2ItemSaveStrc* pItemSave)
 {
 	return ITEMS_GetCompactItemDataFromBitstream(pBitstream, nSize, bCheckForHeader, pItemSave, 0x60);

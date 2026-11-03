@@ -552,13 +552,11 @@ D2COMMON_DLL_DECL int __stdcall ITEMS_HasUsedCharges(D2UnitStrc* pItem, BOOL* pH
 //D2Common.0x6FDA0340 (#10880)
 D2COMMON_DLL_DECL BOOL __stdcall ITEMS_IsEthereal(D2UnitStrc* pItem);
 //D2Common.0x6FDA0370 (#10883)
-//1.14d: 0x0062AE20
-#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
-D2COMMON_DLL_DECL BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, D2ItemSaveStrc* pItemSave, uint32_t dwVersion);
 //1.14d: 0x0062E410
 D2COMMON_DLL_DECL BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, D2ItemSaveStrc* pItemSave);
-#else
-D2COMMON_DLL_DECL BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, D2ItemSaveStrc* pItemSave);
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+//1.14d: 0x0062AE20
+BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, D2ItemSaveStrc* pItemSave, uint32_t dwVersion);
 #endif
 //D2Common.0x6FDA0490 (#10882)
 D2COMMON_DLL_DECL size_t __stdcall ITEMS_DecodeItemFromBitstream(D2UnitStrc* pItem, uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, int* pSocketedItemCount, uint32_t dwVersion, BOOL* pFail);
