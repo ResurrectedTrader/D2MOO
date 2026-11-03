@@ -6509,7 +6509,7 @@ void __fastcall ITEMS_SerializeItemCompact(D2UnitStrc* pItem, D2BitBufferStrc* p
 		}
 		ITEMS_WriteBitsToBitstream(pBuffer, nY, 4);
 
-		ITEMS_WriteBitsToBitstream(pBuffer, (ITEMS_GetInvPage(pItem) + 1), 3);
+		ITEMS_WriteBitsToBitstream(pBuffer, (int8_t)(ITEMS_GetInvPage(pItem) + 1), 3);
 	}
 
 	if (ITEMS_GetItemFlags(pItem) & IFLAG_ISEAR)
@@ -6889,9 +6889,9 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 
 	if (nItemLevel > 0)
 	{
-		if (nItemLevel >= 127)
+		if (nItemLevel >= 99)
 		{
-			nItemLevel = 127;
+			nItemLevel = 99;
 		}
 	}
 	else
@@ -7271,7 +7271,7 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 		}
 		else
 		{
-			nRunewordId = -1;
+			nRunewordId = 0xFFFF;
 		}
 
 		if (nRunewordId > 0)
@@ -7667,7 +7667,9 @@ BOOL __fastcall sub_6FDA4380(D2UnitStrc* pItem, unsigned int nSetItemMask)
 			return TRUE;
 		}
 
-		for(int i = nBonuses - 1; i < 6; ++i)
+		// The original stops before ITEMSET6. With nBonuses == 0 it starts at gnItemSetStates[-1], which holds no state
+		// (0 in 1.10f, 0xD2F in 1.14d), so starting at 0 gives the same result without the out-of-bounds read.
+		for (int i = nBonuses > 0 ? nBonuses - 1 : 0; i < 5; ++i)
 		{
 			D2Common_10574(pItem, gnItemSetStates[i], TRUE);
 		}
