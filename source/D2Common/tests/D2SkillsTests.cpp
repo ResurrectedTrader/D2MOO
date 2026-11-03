@@ -13,9 +13,12 @@
 #include <TestUtilities.h>
 
 #include <D2Skills.h>
+#include <DataTbls/SkillsIds.h>
 #include <DataTbls/SkillsTbls.h>
 #include <Drlg/D2DrlgDrlg.h>
 #include <Units/Units.h>
+
+#include <Fixtures/DataTbls/Fixtures.h>
 
 
 TEST_SUITE("D2SkillsTests")
@@ -42,38 +45,30 @@ TEST_SUITE("D2SkillsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FDAEB60 (#11271)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(MissilesTxtFixture<SkillDescTxtFixture<SkillsTxtFixture<NoOpFixture>>>, "D2Common.0x6FDAEB60 (#11271)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(SKILLS_GetSpecialParamValue, dll_base + 0x0006EB60);
-		
-		SUBCASE("")
+
+		// The mana (22) and missile range (35-37) parameters only read the tables, so no unit is needed
+		for (const int nParamId : { 22, 35, 36, 37 })
 		{
-			// Input data
-			D2UnitStrc moo_pUnit{};
-			D2UnitStrc original_pUnit{};
-			uint8_t nParamId{};
-			int nSkillId{};
-			int nSkillLevel{};
+			for (int nSkillId = 0; nSkillId < skills_record_count; ++nSkillId)
+			{
+				for (int nSkillLevel = 0; nSkillLevel <= 3; ++nSkillLevel)
+				{
+					CAPTURE(nParamId);
+					CAPTURE(nSkillId);
+					CAPTURE(nSkillLevel);
 
-			const auto setup_data = [](
-				D2UnitStrc& pUnit
-			) {
-				// TODO: Setup as needed
-			};
+					// Call both implementations
+					const auto moo_result = sut(nullptr, (uint8_t)nParamId, nSkillId, nSkillLevel);
+					const auto original_result = original(nullptr, (uint8_t)nParamId, nSkillId, nSkillLevel);
 
-			setup_data(moo_pUnit);
-			setup_data(original_pUnit);
-
-			// Call both implementations
-			const auto moo_result = sut(&moo_pUnit, nParamId, nSkillId, nSkillLevel);
-			const auto original_result = original(&original_pUnit, nParamId, nSkillId, nSkillLevel);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
-
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pUnit, original_pUnit, "Comparing pUnit");
+					// Compare return values
+					MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+				}
+			}
 		}
 	}
 	
@@ -1241,40 +1236,85 @@ TEST_SUITE("D2SkillsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FDB0B70 (#10964)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(StatesTxtFixture<ExperienceTxtFixture<ItemStatCostTxtFixture<ItemTypesTxtFixture<ItemsTxtFixture<SkillsTxtFixture<NoOpFixture>>>>>>, "D2Common.0x6FDB0B70 (#10964)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(SKILLS_GetUseState, dll_base + 0x00070B70);
-		
-		SUBCASE("")
+
+		// A throwing weapon, so that both hands hold something Left Hand Throw can use
+		int nThrowingWeaponId = -1;
+		for (int i = 0; i < items_record_count; ++i)
 		{
-			// Input data
-			D2UnitStrc moo_pUnit{};
-			D2SkillStrc moo_pSkill{};
-			D2UnitStrc original_pUnit{};
-			D2SkillStrc original_pSkill{};
-
-			const auto setup_data = [](
-				D2UnitStrc& pUnit,
-				D2SkillStrc& pSkill
-			) {
-				// TODO: Setup as needed
-			};
-
-			setup_data(moo_pUnit, moo_pSkill);
-			setup_data(original_pUnit, original_pSkill);
-
-			// Call both implementations
-			const auto moo_result = sut(&moo_pUnit, &moo_pSkill);
-			const auto original_result = original(&original_pUnit, &original_pSkill);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
-
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pUnit, original_pUnit, "Comparing pUnit");
-			SKIP_MOO_CHECK_EQ(moo_pSkill, original_pSkill, "Comparing pSkill");
+			if (ITEMS_CheckItemTypeIfThrowable(items_txt[i].wType[0]) && ITEMS_CheckItemTypeIdByItemId(i, ITEMTYPE_WEAPON))
+			{
+				nThrowingWeaponId = i;
+				break;
+			}
 		}
+		REQUIRE(nThrowingWeaponId >= 0);
+
+		struct Scene
+		{
+			D2UnitStrc pUnit{};
+			D2StatListExStrc pStatListEx{};
+			std::unique_ptr<uint32_t[]> StatFlags;
+			D2InventoryStrc pInventory{};
+			D2InventoryGridStrc pBodyLocGrid{};
+			D2UnitStrc* ppBodyLocItems[NUM_BODYLOC]{};
+			D2UnitStrc pItems[2]{};
+			D2ItemDataStrc pItemsData[2]{};
+			D2SkillStrc pSkill{};
+		};
+
+		const auto setup_data = [&](Scene& scene) {
+			scene.StatFlags = std::make_unique<uint32_t[]>(2 * ((states_record_count + 31) / 32));
+			scene.pStatListEx.dwFlags |= STATLIST_EXTENDED;
+			scene.pStatListEx.StatFlags = scene.StatFlags.get();
+
+			// Both arms hold a throwing weapon; no left-hand weapon is designated, so the equipped
+			// weapon lookup picks the right hand
+			for (int i = 0; i < 2; ++i)
+			{
+				scene.pItems[i].dwUnitType = UNIT_ITEM;
+				scene.pItems[i].dwClassId = nThrowingWeaponId;
+				scene.pItems[i].dwUnitId = i + 1;
+				scene.pItems[i].pItemData = &scene.pItemsData[i];
+			}
+			scene.ppBodyLocItems[BODYLOC_RARM] = &scene.pItems[0];
+			scene.ppBodyLocItems[BODYLOC_LARM] = &scene.pItems[1];
+
+			scene.pBodyLocGrid.nGridWidth = NUM_BODYLOC;
+			scene.pBodyLocGrid.nGridHeight = 1;
+			scene.pBodyLocGrid.ppItems = scene.ppBodyLocItems;
+
+			scene.pInventory.dwSignature = D2C_InventoryHeader;
+			scene.pInventory.pGrids = &scene.pBodyLocGrid;
+			scene.pInventory.nGridCount = INVGRID_BODYLOC + 1;
+			scene.pInventory.dwLeftItemGUID = D2UnitInvalidGUID;
+
+			scene.pUnit.dwUnitType = UNIT_PLAYER;
+			scene.pUnit.dwClassId = PCLASS_BARBARIAN;
+			scene.pUnit.pStatListEx = &scene.pStatListEx;
+			scene.pUnit.pInventory = &scene.pInventory;
+
+			// A charged skill, so that no mana is needed
+			scene.pSkill.pSkillsTxt = &skills_txt[SKILL_LEFTHANDTHROW];
+			scene.pSkill.nSkillLevel = 1;
+			scene.pSkill.nOwnerGUID = 100;
+			scene.pSkill.nCharges = 5;
+		};
+
+		Scene moo{};
+		Scene orig{};
+		setup_data(moo);
+		setup_data(orig);
+
+		// Call both implementations
+		const auto moo_result = sut(&moo.pUnit, &moo.pSkill);
+		const auto original_result = original(&orig.pUnit, &orig.pSkill);
+
+		// Compare return values
+		MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
 	}
 	
 	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FDB0F50" * doctest::skip(""))
@@ -1346,12 +1386,15 @@ TEST_SUITE("D2SkillsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FDB1070" * doctest::skip(""))
+	TEST_CASE_FIXTURE(ExperienceTxtFixture<ItemStatCostTxtFixture<SkillsTxtFixture<NoOpFixture>>>, "D2Common.0x6FDB1070")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(sub_6FDB1070, dll_base + 0x00071070);
-		
-		SUBCASE("")
+
+		static constexpr int nSkillId = 36;
+		static constexpr int nSkillLevel = 3;
+
+		SUBCASE("Native skill on a unit without inventory")
 		{
 			// Input data
 			D2UnitStrc moo_pUnit{};
@@ -1359,11 +1402,14 @@ TEST_SUITE("D2SkillsTests")
 			D2UnitStrc original_pUnit{};
 			D2SkillStrc original_pSkill{};
 
-			const auto setup_data = [](
+			const auto setup_data = [this](
 				D2UnitStrc& pUnit,
 				D2SkillStrc& pSkill
 			) {
-				// TODO: Setup as needed
+				pUnit.dwUnitType = UNIT_MONSTER;
+				pSkill.pSkillsTxt = &skills_txt[nSkillId];
+				pSkill.nSkillLevel = nSkillLevel;
+				pSkill.nOwnerGUID = D2UnitInvalidGUID;
 			};
 
 			setup_data(moo_pUnit, moo_pSkill);
@@ -1372,13 +1418,77 @@ TEST_SUITE("D2SkillsTests")
 			// Call both implementations
 			const auto moo_result = sut(&moo_pUnit, &moo_pSkill);
 			const auto original_result = original(&original_pUnit, &original_pSkill);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
 
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pUnit, original_pUnit, "Comparing pUnit");
-			SKIP_MOO_CHECK_EQ(moo_pSkill, original_pSkill, "Comparing pSkill");
+			// Compare return values
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+		}
+
+		SUBCASE("Charged skill")
+		{
+			// Packed charged-skill stat: maximum charges in the high byte, current charges in the low byte
+			for (const int nChargesStat : { 0x3200, 0x3205, 0x0005 })
+			{
+				CAPTURE(nChargesStat);
+
+				// Input data
+				D2UnitStrc moo_pUnit{};
+				D2InventoryStrc moo_pInventory{};
+				D2UnitStrc moo_pItem{};
+				D2ItemDataStrc moo_pItemData{};
+				D2StatListExStrc moo_pStatListEx{};
+				D2StatStrc moo_pStat{};
+				D2SkillStrc moo_pSkill{};
+				D2UnitStrc original_pUnit{};
+				D2InventoryStrc original_pInventory{};
+				D2UnitStrc original_pItem{};
+				D2ItemDataStrc original_pItemData{};
+				D2StatListExStrc original_pStatListEx{};
+				D2StatStrc original_pStat{};
+				D2SkillStrc original_pSkill{};
+
+				const auto setup_data = [this, nChargesStat](
+					D2UnitStrc& pUnit,
+					D2InventoryStrc& pInventory,
+					D2UnitStrc& pItem,
+					D2ItemDataStrc& pItemData,
+					D2StatListExStrc& pStatListEx,
+					D2StatStrc& pStat,
+					D2SkillStrc& pSkill
+				) {
+					pStat.nStat = STAT_ITEM_CHARGED_SKILL;
+					pStat.nLayer = (nSkillId << 6) + nSkillLevel;
+					pStat.nValue = nChargesStat;
+					pStatListEx.dwFlags |= STATLIST_EXTENDED;
+					pStatListEx.FullStats.pStat = &pStat;
+					pStatListEx.FullStats.nStatCount = 1;
+
+					pItem.dwUnitType = UNIT_ITEM;
+					pItem.dwUnitId = 7;
+					pItem.pItemData = &pItemData;
+					pItem.pStatListEx = &pStatListEx;
+
+					pInventory.dwSignature = D2C_InventoryHeader;
+					pInventory.pFirstItem = &pItem;
+					pInventory.pLastItem = &pItem;
+
+					pUnit.dwUnitType = UNIT_PLAYER;
+					pUnit.pInventory = &pInventory;
+
+					pSkill.pSkillsTxt = &skills_txt[nSkillId];
+					pSkill.nSkillLevel = nSkillLevel;
+					pSkill.nOwnerGUID = pItem.dwUnitId;
+				};
+
+				setup_data(moo_pUnit, moo_pInventory, moo_pItem, moo_pItemData, moo_pStatListEx, moo_pStat, moo_pSkill);
+				setup_data(original_pUnit, original_pInventory, original_pItem, original_pItemData, original_pStatListEx, original_pStat, original_pSkill);
+
+				// Call both implementations
+				const auto moo_result = sut(&moo_pUnit, &moo_pSkill);
+				const auto original_result = original(&original_pUnit, &original_pSkill);
+
+				// Compare return values
+				MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+			}
 		}
 	}
 	
@@ -1732,34 +1842,50 @@ TEST_SUITE("D2SkillsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FDB1820 (#11031)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(SkillsTxtFixture<NoOpFixture>, "D2Common.0x6FDB1820 (#11031)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(D2Common_11031, dll_base + 0x00071820);
-		
-		SUBCASE("")
+
+		static constexpr int nSkillId = 36;
+
+		// The skill already exists, so only the bonus is adjusted
+		for (const int a3 : { 2, -3, -5 })
 		{
+			CAPTURE(a3);
+
 			// Input data
 			D2UnitStrc moo_pUnit{};
+			D2SkillListStrc moo_pSkillList{};
+			D2SkillStrc moo_pSkill{};
 			D2UnitStrc original_pUnit{};
-			int nSkillId{};
-			int a3{};
+			D2SkillListStrc original_pSkillList{};
+			D2SkillStrc original_pSkill{};
 
-			const auto setup_data = [](
-				D2UnitStrc& pUnit
+			const auto setup_data = [this](
+				D2UnitStrc& pUnit,
+				D2SkillListStrc& pSkillList,
+				D2SkillStrc& pSkill
 			) {
-				// TODO: Setup as needed
+				pSkill.pSkillsTxt = &skills_txt[nSkillId];
+				pSkill.nSkillLevel = 1;
+				pSkill.nLevelBonus = 3;
+				pSkill.nOwnerGUID = D2UnitInvalidGUID;
+				pSkillList.pFirstSkill = &pSkill;
+				pUnit.dwUnitType = UNIT_PLAYER;
+				pUnit.pSkills = &pSkillList;
 			};
 
-			setup_data(moo_pUnit);
-			setup_data(original_pUnit);
+			setup_data(moo_pUnit, moo_pSkillList, moo_pSkill);
+			setup_data(original_pUnit, original_pSkillList, original_pSkill);
 
 			// Call both implementations
 			sut(&moo_pUnit, nSkillId, a3);
 			original(&original_pUnit, nSkillId, a3);
 
 			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pUnit, original_pUnit, "Comparing pUnit");
+			MOO_CHECK_EQ(moo_pSkill.nLevelBonus, original_pSkill.nLevelBonus, "Comparing nLevelBonus");
+			MOO_CHECK_EQ(moo_pSkill.nSkillLevel, original_pSkill.nSkillLevel, "Comparing nSkillLevel");
 		}
 	}
 	
