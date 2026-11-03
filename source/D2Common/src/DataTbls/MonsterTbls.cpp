@@ -161,11 +161,17 @@ void __fastcall DATATBLS_LoadMonStatsTxt(HD2ARCHIVE hArchive)
 
 	char* szMonsterName = NULL;
 	int nNextInClass = 0;
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+	// 1.14d: 0x00650F88 / 0x00650F8D and 0x00651006 clamp the scaled speeds unsigned (1.10f clamps them signed)
+	uint32_t nWalkAnimSpeed = 0;
+	uint32_t nRunAnimSpeed = 0;
+#else
 	int nWalkAnimSpeed = 0;
+	int nRunAnimSpeed = 0;
+#endif
 	int nCounter = 0;
 	int nChainId = 0;
 	int nBaseId = 0;
-	int nRunAnimSpeed = 0;
 	int nId = 0;
 	bool bFoundInChain = false;
 
