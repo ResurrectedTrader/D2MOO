@@ -7,15 +7,21 @@
 #include <Windows.h>
 
 #include <cstdarg>
+#include <cstdio>
 #include <filesystem>
+#include <string>
 
 #include <TestDefinitions.h>
 #include <TestUtilities.h>
 
+#include <D2Inventory.h>
 #include <D2Items.h>
+#include <D2States.h>
 #include <D2StatList.h>
 #include <GAME/Game.h>
 #include <Units/Units.h>
+
+#include <Fixtures/DataTbls/Fixtures.h>
 
 
 TEST_SUITE("D2ItemsTests")
@@ -5136,43 +5142,118 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FDA2BA0 (#10881)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(ItemTypesTxtFixture<ItemsTxtFixture<NoOpFixture>>, "D2Common.0x6FDA2BA0 (#10881)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_SerializeItemToBitstream, dll_base + 0x00062BA0);
-		
-		SUBCASE("")
+
+		struct SerializedItem
+		{
+			D2UnitStrc pItem{};
+			D2ItemDataStrc pItemData{};
+			D2StaticPathStrc pStaticPath{};
+			uint8_t pBitstream[32]{};
+		};
+
+		const auto find_item = [&](uint32_t dwCode)
+		{
+			for (int nClassId = 0; nClassId < items_record_count; ++nClassId)
+			{
+				if (items_txt[nClassId].dwCode == dwCode)
+				{
+					return nClassId;
+				}
+			}
+			return -1;
+		};
+
+		const auto to_hex = [](const uint8_t(&pBitstream)[32])
+		{
+			std::string bytes;
+			char szByte[3] = {};
+			for (const uint8_t nByte : pBitstream)
+			{
+				std::snprintf(szByte, sizeof(szByte), "%02X", nByte);
+				bytes += szByte;
+			}
+			return bytes;
+		};
+
+		const auto check_serialize = [&](int nClassId, uint32_t dwItemFlags, uint32_t dwItemLevel, uint8_t nInvPage)
 		{
 			// Input data
-			D2UnitStrc moo_pItem{};
-			uint8_t moo_pBitstream{};
-			D2UnitStrc original_pItem{};
-			uint8_t original_pBitstream{};
-			size_t nSize{};
-			BOOL bServer{};
-			BOOL bSaveItemInv{};
-			BOOL bGamble{};
+			SerializedItem moo_data{};
+			SerializedItem original_data{};
 
-			const auto setup_data = [](
-				D2UnitStrc& pItem,
-				uint8_t& pBitstream
-			) {
-				// TODO: Setup as needed
+			const auto setup_data = [&](SerializedItem& data)
+			{
+				data.pItem.dwUnitType = UNIT_ITEM;
+				data.pItem.dwClassId = nClassId;
+				data.pItem.dwAnimMode = IMODE_STORED;
+				data.pItem.pItemData = &data.pItemData;
+				data.pItem.pStaticPath = &data.pStaticPath;
+				data.pItemData.dwQualityNo = ITEMQUAL_NORMAL;
+				data.pItemData.dwItemFlags = dwItemFlags;
+				data.pItemData.dwItemLevel = dwItemLevel;
+				data.pItemData.nInvPage = nInvPage;
 			};
 
-			setup_data(moo_pItem, moo_pBitstream);
-			setup_data(original_pItem, original_pBitstream);
+			setup_data(moo_data);
+			setup_data(original_data);
 
 			// Call both implementations
-			const auto moo_result = sut(&moo_pItem, &moo_pBitstream, nSize, bServer, bSaveItemInv, bGamble);
-			const auto original_result = original(&original_pItem, &original_pBitstream, nSize, bServer, bSaveItemInv, bGamble);
-			
+			const auto moo_result = sut(&moo_data.pItem, moo_data.pBitstream, sizeof(moo_data.pBitstream), FALSE, FALSE, FALSE);
+			const auto original_result = original(&original_data.pItem, original_data.pBitstream, sizeof(original_data.pBitstream), FALSE, FALSE, FALSE);
+
 			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
 
 			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pItem, original_pItem, "Comparing pItem");
-			SKIP_MOO_CHECK_EQ(moo_pBitstream, original_pBitstream, "Comparing pBitstream");
+			MOO_CHECK_EQ(moo_data.pItemData, original_data.pItemData, "Comparing pItemData");
+			std::string moo_bytes = to_hex(moo_data.pBitstream);
+			std::string original_bytes = to_hex(original_data.pBitstream);
+			MOO_CHECK_EQ(moo_bytes, original_bytes, "Comparing pBitstream");
+		};
+
+		// Amulets are saved complete, chipped amethysts compact
+		const int nAmulet = find_item(' uma');
+		const int nChippedAmethyst = find_item(' vcg');
+		REQUIRE(nAmulet >= 0);
+		REQUIRE(nChippedAmethyst >= 0);
+		REQUIRE(!items_txt[nAmulet].nCompactSave);
+		REQUIRE(items_txt[nChippedAmethyst].nCompactSave);
+
+		SUBCASE("Complete item level")
+		{
+			for (const uint32_t dwItemLevel : { 0u, 1u, 50u, 98u, 99u, 100u, 126u, 127u, 128u, 255u, 0xFFFFFFFFu })
+			{
+				CAPTURE(dwItemLevel);
+				check_serialize(nAmulet, 0, dwItemLevel, INVPAGE_INVENTORY);
+			}
+		}
+
+		SUBCASE("Complete runeword without a runes record")
+		{
+			// Without socketed runes, ITEMS_GetRunesTxtRecordFromItem finds no record
+			check_serialize(nAmulet, IFLAG_RUNEWORD, 1, INVPAGE_INVENTORY);
+		}
+
+		SUBCASE("Complete inventory pages")
+		{
+			for (int nInvPage = 0; nInvPage <= UINT8_MAX; ++nInvPage)
+			{
+				CAPTURE(nInvPage);
+				check_serialize(nAmulet, 0, 1, (uint8_t)nInvPage);
+			}
+		}
+
+		SUBCASE("Compact inventory pages")
+		{
+			for (int nInvPage = 0; nInvPage <= UINT8_MAX; ++nInvPage)
+			{
+				CAPTURE(nInvPage);
+				check_serialize(nChippedAmethyst, 0, 1, (uint8_t)nInvPage);
+			}
 		}
 	}
 	
@@ -5369,36 +5450,83 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FDA4380" * doctest::skip(""))
+	TEST_CASE_FIXTURE(SetItemsTxtFixture<NoOpFixture>, "D2Common.0x6FDA4380")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(sub_6FDA4380, dll_base + 0x00064380);
-		
-		SUBCASE("")
+
+		struct SetItem
+		{
+			D2UnitStrc pItem{};
+			D2ItemDataStrc pItemData{};
+			D2StatListExStrc pStatListEx{};
+			D2StatListStrc pSetStatList{};
+		};
+
+		int nSetItemId = -1;
+		for (int i = 0; i < setitems_record_count; ++i)
+		{
+			if (setitems_txt[i].nAddFunc == 2)
+			{
+				nSetItemId = i;
+				break;
+			}
+		}
+		REQUIRE(nSetItemId >= 0);
+
+		// The item has one stat list, for nState, that is not set yet
+		const auto check_set_states = [&](unsigned int nSetItemMask, int nState)
 		{
 			// Input data
-			D2UnitStrc moo_pItem{};
-			D2UnitStrc original_pItem{};
-			unsigned int nSetItemMask{};
+			SetItem moo_data{};
+			SetItem original_data{};
 
-			const auto setup_data = [](
-				D2UnitStrc& pItem
-			) {
-				// TODO: Setup as needed
+			const auto setup_data = [&](SetItem& data)
+			{
+				data.pItem.dwUnitType = UNIT_ITEM;
+				data.pItem.pItemData = &data.pItemData;
+				data.pItem.pStatListEx = &data.pStatListEx;
+				data.pItemData.dwQualityNo = ITEMQUAL_SET;
+				data.pItemData.dwFileIndex = nSetItemId;
+				data.pStatListEx.dwFlags = STATLIST_EXTENDED;
+				data.pStatListEx.pMyLastList = &data.pSetStatList;
+				data.pSetStatList.dwStateNo = nState;
 			};
 
-			setup_data(moo_pItem);
-			setup_data(original_pItem);
+			setup_data(moo_data);
+			setup_data(original_data);
 
 			// Call both implementations
-			const auto moo_result = sut(&moo_pItem, nSetItemMask);
-			const auto original_result = original(&original_pItem, nSetItemMask);
-			
+			const auto moo_result = sut(&moo_data.pItem, nSetItemMask);
+			const auto original_result = original(&original_data.pItem, nSetItemMask);
+
 			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
 
 			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pItem, original_pItem, "Comparing pItem");
+			MOO_CHECK_EQ(moo_data.pSetStatList.dwFlags, original_data.pSetStatList.dwFlags, "Comparing pSetStatList.dwFlags");
+
+			const auto get_links = [](SetItem& data)
+			{
+				return std::to_string(data.pStatListEx.pMyLastList == &data.pSetStatList)
+					+ std::to_string(data.pStatListEx.pMyStats == &data.pSetStatList)
+					+ std::to_string(data.pSetStatList.pParent == &data.pStatListEx)
+					+ std::to_string(data.pSetStatList.pUnit == &data.pItem);
+			};
+			std::string moo_links = get_links(moo_data);
+			std::string original_links = get_links(original_data);
+			MOO_CHECK_EQ(moo_links, original_links, "Comparing stat list links");
+		};
+
+		// With no bonus the original also updates gnItemSetStates[-1], which holds STATE_NONE
+		for (unsigned int nSetItemMask = 0; nSetItemMask < 64; ++nSetItemMask)
+		{
+			for (const int nState : { STATE_NONE, STATE_ITEMSET1, STATE_ITEMSET2, STATE_ITEMSET3, STATE_ITEMSET4, STATE_ITEMSET5, STATE_ITEMSET6 })
+			{
+				CAPTURE(nSetItemMask);
+				CAPTURE(nState);
+				check_set_states(nSetItemMask, nState);
+			}
 		}
 	}
 	
