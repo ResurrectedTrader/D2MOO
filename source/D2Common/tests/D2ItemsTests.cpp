@@ -12,16 +12,91 @@
 #include <TestDefinitions.h>
 #include <TestUtilities.h>
 
+#include <D2Inventory.h>
 #include <D2Items.h>
 #include <D2StatList.h>
 #include <GAME/Game.h>
+#include <Units/Item.h>
 #include <Units/Units.h>
+
+#include <Fixtures/DataTbls/Fixtures.h>
+
+
+// An item unit for the item query tests
+struct ItemQueryTestItem
+{
+	D2UnitStrc tUnit{};
+	D2ItemDataStrc tItemData{};
+
+	ItemQueryTestItem()
+	{
+		tUnit.dwUnitType = UNIT_ITEM;
+		tUnit.pItemData = &tItemData;
+	}
+};
+
+// An inventory whose items are linked the way the inventory functions link them
+struct ItemQueryTestInventory
+{
+	D2InventoryStrc tInventory{};
+	D2InventoryGridStrc tBodyLocGrid{};
+	D2UnitStrc* pBodyLocItems[NUM_BODYLOC]{};
+
+	explicit ItemQueryTestInventory(D2UnitStrc* pOwner)
+	{
+		tInventory.dwSignature = D2C_InventoryHeader;
+		tInventory.pOwner = pOwner;
+		tBodyLocGrid.nGridWidth = NUM_BODYLOC;
+		tBodyLocGrid.nGridHeight = 1;
+		tBodyLocGrid.ppItems = pBodyLocItems;
+		tInventory.pGrids = &tBodyLocGrid;
+		tInventory.nGridCount = 1;
+		pOwner->pInventory = &tInventory;
+	}
+
+	void add(D2UnitStrc* pItem, int nNodePage)
+	{
+		D2ItemExtraDataStrc* pExtraData = &pItem->pItemData->pExtraData;
+		if (tInventory.pLastItem)
+		{
+			tInventory.pLastItem->pItemData->pExtraData.pNextItem = pItem;
+		}
+		else
+		{
+			tInventory.pFirstItem = pItem;
+		}
+		pExtraData->pPreviousItem = tInventory.pLastItem;
+		pExtraData->pParentInv = &tInventory;
+		pExtraData->nNodePosOther = nNodePage;
+		tInventory.pLastItem = pItem;
+		++tInventory.dwItemCount;
+	}
+
+	void equip(D2UnitStrc* pItem, int nBodyLoc)
+	{
+		add(pItem, NODEPAGE_EQUIP);
+		pItem->pItemData->nBodyLoc = nBodyLoc;
+		pBodyLocItems[nBodyLoc] = pItem;
+	}
+};
+
+static int gnItemQueryRepairCallbacks = 0;
+
+static void __fastcall CountItemQueryRepairCallbacks(D2GameStrc*, D2UnitStrc*, D2UnitStrc*)
+{
+	++gnItemQueryRepairCallbacks;
+}
 
 
 TEST_SUITE("D2ItemsTests")
 {
 	const auto working_directory = std::filesystem::current_path();
 	const auto dll_base = reinterpret_cast<uintptr_t>(LoadLibraryA((working_directory / "D2Common.dll").string().c_str()));
+
+	// Stat lists are allocated through the original D2Common.dll, so that both implementations can read and change them
+	const auto native_AllocStatListEx = reinterpret_cast<decltype(&STATLIST_AllocStatListEx)>(dll_base + 0x00077190);
+	const auto native_FreeStatListEx = reinterpret_cast<decltype(&STATLIST_FreeStatListEx)>(dll_base + 0x00077110);
+	const auto native_SetStat = reinterpret_cast<decltype(&STATLIST_SetStat)>(dll_base + 0x000777B0);
 
 	
 	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD98380 (#10687)" * doctest::skip(""))
@@ -843,35 +918,24 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD98870 (#10717)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD98870 (#10717)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_GetItemLevel, dll_base + 0x00058870);
-		
-		SUBCASE("")
+
+		// The level is raised to 1 with a signed compare, so a negative level becomes 1
+		for (const int nItemLevel : { INT_MIN, -1, 0, 1, 99 })
 		{
-			// Input data
-			D2UnitStrc moo_pItem{};
-			D2UnitStrc original_pItem{};
+			CAPTURE(nItemLevel);
+			ItemQueryTestItem moo_item;
+			ItemQueryTestItem original_item;
+			moo_item.tItemData.dwItemLevel = nItemLevel;
+			original_item.tItemData.dwItemLevel = nItemLevel;
 
-			const auto setup_data = [](
-				D2UnitStrc& pItem
-			) {
-				// TODO: Setup as needed
-			};
-
-			setup_data(moo_pItem);
-			setup_data(original_pItem);
-
-			// Call both implementations
-			const auto moo_result = sut(&moo_pItem);
-			const auto original_result = original(&original_pItem);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
-
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pItem, original_pItem, "Comparing pItem");
+			const auto moo_result = sut(&moo_item.tUnit);
+			const auto original_result = original(&original_item.tUnit);
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+			MOO_CHECK_EQ(moo_item.tItemData, original_item.tItemData, "Comparing item data");
 		}
 	}
 	
@@ -1687,35 +1751,38 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD99240 (#10793)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(ItemTypesTxtFixture<ItemsTxtFixture<NoOpFixture>>, "D2Common.0x6FD99240 (#10793)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_CanBeNormal, dll_base + 0x00059240);
-		
-		SUBCASE("")
+
+		SUBCASE("No item")
 		{
-			// Input data
-			D2UnitStrc moo_pItem{};
-			D2UnitStrc original_pItem{};
+			const auto moo_result = sut(nullptr);
+			const auto original_result = original(nullptr);
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+		}
 
-			const auto setup_data = [](
-				D2UnitStrc& pItem
-			) {
-				// TODO: Setup as needed
-			};
+		SUBCASE("Not an item")
+		{
+			D2UnitStrc tMonster{};
+			tMonster.dwUnitType = UNIT_MONSTER;
+			const auto moo_result = sut(&tMonster);
+			const auto original_result = original(&tMonster);
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+		}
 
-			setup_data(moo_pItem);
-			setup_data(original_pItem);
-
-			// Call both implementations
-			const auto moo_result = sut(&moo_pItem);
-			const auto original_result = original(&original_pItem);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
-
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pItem, original_pItem, "Comparing pItem");
+		SUBCASE("Every item")
+		{
+			for (int nClassId = 0; nClassId < items_record_count; ++nClassId)
+			{
+				CAPTURE(nClassId);
+				ItemQueryTestItem item;
+				item.tUnit.dwClassId = nClassId;
+				const auto moo_result = sut(&item.tUnit);
+				const auto original_result = original(&item.tUnit);
+				MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+			}
 		}
 	}
 	
@@ -3435,35 +3502,30 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD9D490 (#10815)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(ItemTypesTxtFixture<ItemsTxtFixture<NoOpFixture>>, "D2Common.0x6FD9D490 (#10815)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_GetMaxSockets, dll_base + 0x0005D490);
-		
-		SUBCASE("")
+
+		// The item level is read as signed, so a negative level selects the MaxSock1 column
+		for (const int nItemLevel : { -1, 1, 26, 41 })
 		{
-			// Input data
-			D2UnitStrc moo_pItem{};
-			D2UnitStrc original_pItem{};
+			for (int nClassId = 0; nClassId < items_record_count; ++nClassId)
+			{
+				CAPTURE(nItemLevel);
+				CAPTURE(nClassId);
+				ItemQueryTestItem moo_item;
+				ItemQueryTestItem original_item;
+				moo_item.tUnit.dwClassId = nClassId;
+				original_item.tUnit.dwClassId = nClassId;
+				moo_item.tItemData.dwItemLevel = nItemLevel;
+				original_item.tItemData.dwItemLevel = nItemLevel;
 
-			const auto setup_data = [](
-				D2UnitStrc& pItem
-			) {
-				// TODO: Setup as needed
-			};
-
-			setup_data(moo_pItem);
-			setup_data(original_pItem);
-
-			// Call both implementations
-			const auto moo_result = sut(&moo_pItem);
-			const auto original_result = original(&original_pItem);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
-
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pItem, original_pItem, "Comparing pItem");
+				const auto moo_result = sut(&moo_item.tUnit);
+				const auto original_result = original(&original_item.tUnit);
+				MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+				MOO_CHECK_EQ(moo_item.tItemData, original_item.tItemData, "Comparing item data");
+			}
 		}
 	}
 	
@@ -3529,34 +3591,95 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD9D7C0 (#10818)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(ItemStatCostTxtFixture<ItemTypesTxtFixture<ItemsTxtFixture<NoOpFixture>>>, "D2Common.0x6FD9D7C0 (#10818)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_SetSockets, dll_base + 0x0005D7C0);
-		
-		SUBCASE("")
+
+		// Covers items of every inventory size, including the small ones (at most 6 cells) whose socket count is capped by their area
+		for (const int nSockets : { 2, 6 })
 		{
-			// Input data
-			D2UnitStrc moo_pItem{};
-			D2UnitStrc original_pItem{};
-			int nSockets{};
+			for (int nClassId = 0; nClassId < items_record_count; ++nClassId)
+			{
+				CAPTURE(nSockets);
+				CAPTURE(nClassId);
+				ItemQueryTestItem moo_item;
+				ItemQueryTestItem original_item;
+				for (ItemQueryTestItem* pItem : { &moo_item, &original_item })
+				{
+					pItem->tUnit.dwClassId = nClassId;
+					pItem->tItemData.dwItemLevel = 41;
+					native_AllocStatListEx(&pItem->tUnit, 0, nullptr, nullptr);
+				}
 
-			const auto setup_data = [](
-				D2UnitStrc& pItem
-			) {
-				// TODO: Setup as needed
-			};
+				sut(&moo_item.tUnit, nSockets);
+				original(&original_item.tUnit, nSockets);
 
-			setup_data(moo_pItem);
-			setup_data(original_pItem);
+				const auto moo_sockets = STATLIST_UnitGetStatValue(&moo_item.tUnit, STAT_ITEM_NUMSOCKETS, 0);
+				const auto original_sockets = STATLIST_UnitGetStatValue(&original_item.tUnit, STAT_ITEM_NUMSOCKETS, 0);
+				MOO_CHECK_EQ(moo_item.tItemData.dwItemFlags, original_item.tItemData.dwItemFlags, "Comparing item flags");
+				MOO_CHECK_EQ(moo_sockets, original_sockets, "Comparing sockets");
 
-			// Call both implementations
-			sut(&moo_pItem, nSockets);
-			original(&original_pItem, nSockets);
-
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pItem, original_pItem, "Comparing pItem");
+				native_FreeStatListEx(&moo_item.tUnit);
+				native_FreeStatListEx(&original_item.tUnit);
+			}
 		}
+	}
+
+	TEST_CASE_FIXTURE(ItemStatCostTxtFixture<ItemTypesTxtFixture<ItemsTxtFixture<NoOpFixture>>>, "D2Common.0x6FD9D9E0 (#10822)")
+	{
+		// Set up function pointers
+		const auto [sut, original] = make_function_pair(ITEMS_GetRunesTxtRecordFromItem, dll_base + 0x0005D9E0);
+
+		constexpr int nItemClassId = 0;
+		constexpr int nFirstRuneClassId = 1;
+		constexpr int nSecondRuneClassId = 2;
+
+		// A complete runeword for the item's own type
+		D2RunesTxt tRunesTxt[1]{};
+		tRunesTxt[0].nComplete = 1;
+		tRunesTxt[0].wIType[0] = items_txt[nItemClassId].wType[0];
+
+		D2RuneDataTbl tPreviousRuneDataTables = sgptDataTables->pRuneDataTables;
+		sgptDataTables->pRuneDataTables.nRunesTxtRecordCount = 1;
+		sgptDataTables->pRuneDataTables.pRunesTxt = tRunesTxt;
+
+		ItemQueryTestItem item;
+		item.tUnit.dwClassId = nItemClassId;
+		item.tItemData.dwQualityNo = ITEMQUAL_NORMAL;
+		native_AllocStatListEx(&item.tUnit, 0, nullptr, nullptr);
+		ItemQueryTestInventory inventory(&item.tUnit);
+
+		ItemQueryTestItem sockets[3];
+
+		SUBCASE("Empty socket inventory")
+		{
+			// A recipe without runes, on an item without sockets
+			const auto moo_result = reinterpret_cast<uintptr_t>(sut(&item.tUnit));
+			const auto original_result = reinterpret_cast<uintptr_t>(original(&item.tUnit));
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+		}
+
+		SUBCASE("Recipe shorter than the socket count")
+		{
+			// A two-rune recipe matching the first two of three sockets
+			tRunesTxt[0].nRune[0] = nFirstRuneClassId;
+			tRunesTxt[0].nRune[1] = nSecondRuneClassId;
+			sockets[0].tUnit.dwClassId = nFirstRuneClassId;
+			sockets[1].tUnit.dwClassId = nSecondRuneClassId;
+			sockets[2].tUnit.dwClassId = nSecondRuneClassId;
+			for (ItemQueryTestItem& socket : sockets)
+			{
+				inventory.add(&socket.tUnit, 0);
+			}
+			native_SetStat(item.tUnit.pStatListEx, STAT_ITEM_NUMSOCKETS, 3, 0);
+			const auto moo_result = reinterpret_cast<uintptr_t>(sut(&item.tUnit));
+			const auto original_result = reinterpret_cast<uintptr_t>(original(&item.tUnit));
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+		}
+
+		native_FreeStatListEx(&item.tUnit);
+		sgptDataTables->pRuneDataTables = tPreviousRuneDataTables;
 	}
 	
 	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD9D900 (#10819)" * doctest::skip(""))
@@ -4215,45 +4338,70 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD9E710 (#10829)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(ItemTypesTxtFixture<ItemsTxtFixture<NoOpFixture>>, "D2Common.0x6FD9E710 (#10829)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_GetColor, dll_base + 0x0005E710);
-		
-		SUBCASE("")
+
+		int nClassId = 0;
+		while (nClassId < items_record_count && (items_txt[nClassId].nTransform <= 0 || items_txt[nClassId].nTransform >= 9))
 		{
-			// Input data
-			D2UnitStrc moo_pPlayer{};
-			D2UnitStrc moo_pItem{};
-			uint8_t moo_pColor{};
-			D2UnitStrc original_pPlayer{};
-			D2UnitStrc original_pItem{};
-			uint8_t original_pColor{};
-			int nTransType{};
-
-			const auto setup_data = [](
-				D2UnitStrc& pPlayer,
-				D2UnitStrc& pItem,
-				uint8_t& pColor
-			) {
-				// TODO: Setup as needed
-			};
-
-			setup_data(moo_pPlayer, moo_pItem, moo_pColor);
-			setup_data(original_pPlayer, original_pItem, original_pColor);
-
-			// Call both implementations
-			const auto moo_result = sut(&moo_pPlayer, &moo_pItem, &moo_pColor, nTransType);
-			const auto original_result = original(&original_pPlayer, &original_pItem, &original_pColor, nTransType);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
-
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pPlayer, original_pPlayer, "Comparing pPlayer");
-			SKIP_MOO_CHECK_EQ(moo_pItem, original_pItem, "Comparing pItem");
-			SKIP_MOO_CHECK_EQ(moo_pColor, original_pColor, "Comparing pColor");
+			++nClassId;
 		}
+		REQUIRE(nClassId < items_record_count);
+
+		// A suffix and a prefix, both with a transform colour
+		D2MagicAffixTxt tMagicAffixTxt[2]{};
+		D2MagicAffixDataTbl tPreviousMagicAffixDataTables = sgptDataTables->pMagicAffixDataTables;
+		sgptDataTables->pMagicAffixDataTables.nMagicAffixTxtRecordCount = 2;
+		sgptDataTables->pMagicAffixDataTables.pMagicAffixTxt = tMagicAffixTxt;
+		// The original reads the affixes from its own copy of the table
+		const auto original_magicaffix_record_count = reinterpret_cast<int*>(dll_base + 0x000A9608 + 0x00000EC8);
+		const auto original_magicaffix = reinterpret_cast<D2MagicAffixTxt**>(dll_base + 0x000A9608 + 0x00000ECC);
+		const int nPreviousOriginalMagicAffixRecordCount = *original_magicaffix_record_count;
+		D2MagicAffixTxt* pPreviousOriginalMagicAffix = *original_magicaffix;
+		*original_magicaffix_record_count = 2;
+		*original_magicaffix = tMagicAffixTxt;
+
+		ItemQueryTestItem item;
+		item.tUnit.dwClassId = nClassId;
+		item.tItemData.dwQualityNo = ITEMQUAL_MAGIC;
+		item.tItemData.wMagicSuffix[0] = 1;
+		item.tItemData.wMagicPrefix[0] = 2;
+
+		const auto compare = [&]()
+		{
+			for (const int nTransType : { 0, 1 })
+			{
+				CAPTURE(nTransType);
+				uint8_t moo_color = 0xAA;
+				uint8_t original_color = 0xAA;
+				// The palettes are not loaded, so compare the returned addresses only
+				const auto moo_result = reinterpret_cast<uintptr_t>(sut(nullptr, &item.tUnit, &moo_color, nTransType));
+				const auto original_result = reinterpret_cast<uintptr_t>(original(nullptr, &item.tUnit, &original_color, nTransType));
+				MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+				MOO_CHECK_EQ(moo_color, original_color, "Comparing color");
+			}
+		};
+
+		SUBCASE("Colour out of range")
+		{
+			// Colour bytes are unsigned, so 0xFE is out of range rather than -2
+			tMagicAffixTxt[0].nTransformColor = 0xFE;
+			compare();
+		}
+
+		SUBCASE("No colour")
+		{
+			// 0xFF marks an affix without a colour, so the prefix colour applies
+			tMagicAffixTxt[0].nTransformColor = 0xFF;
+			tMagicAffixTxt[1].nTransformColor = 5;
+			compare();
+		}
+
+		sgptDataTables->pMagicAffixDataTables = tPreviousMagicAffixDataTables;
+		*original_magicaffix_record_count = nPreviousOriginalMagicAffixRecordCount;
+		*original_magicaffix = pPreviousOriginalMagicAffix;
 	}
 	
 	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD9EE70" * doctest::skip(""))
@@ -4274,35 +4422,26 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD9EEA0 (#10830)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(ItemTypesTxtFixture<ItemsTxtFixture<NoOpFixture>>, "D2Common.0x6FD9EEA0 (#10830)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_IsImbueable, dll_base + 0x0005EEA0);
-		
-		SUBCASE("")
+
+		// Only items below magic quality (or above tempered) can be imbued
+		for (int nQuality = ITEMQUAL_INFERIOR; nQuality <= ITEMQUAL_TEMPERED; ++nQuality)
 		{
-			// Input data
-			D2UnitStrc moo_pItem{};
-			D2UnitStrc original_pItem{};
+			for (int nClassId = 0; nClassId < items_record_count; ++nClassId)
+			{
+				CAPTURE(nQuality);
+				CAPTURE(nClassId);
+				ItemQueryTestItem item;
+				item.tUnit.dwClassId = nClassId;
+				item.tItemData.dwQualityNo = nQuality;
 
-			const auto setup_data = [](
-				D2UnitStrc& pItem
-			) {
-				// TODO: Setup as needed
-			};
-
-			setup_data(moo_pItem);
-			setup_data(original_pItem);
-
-			// Call both implementations
-			const auto moo_result = sut(&moo_pItem);
-			const auto original_result = original(&original_pItem);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
-
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pItem, original_pItem, "Comparing pItem");
+				const auto moo_result = sut(&item.tUnit);
+				const auto original_result = original(&item.tUnit);
+				MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+			}
 		}
 	}
 	
@@ -4370,46 +4509,58 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD9F490 (#10877)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(ItemStatCostTxtFixture<ItemTypesTxtFixture<ItemsTxtFixture<NoOpFixture>>>, "D2Common.0x6FD9F490 (#10877)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_GetAllRepairCosts, dll_base + 0x0005F490);
-		
-		SUBCASE("")
+
+		constexpr int nNpcId = 154;
+		constexpr int nSkillId = 36;
+
+		uint8_t pQuestFlagBytes[96]{};
+		D2BitBufferStrc tQuestFlags{};
+		tQuestFlags.pBuffer = pQuestFlagBytes;
+		tQuestFlags.nBits = 8 * sizeof(pQuestFlagBytes);
+
+		D2UnitStrc tPlayer{};
+		tPlayer.dwUnitType = UNIT_PLAYER;
+		ItemQueryTestInventory inventory(&tPlayer);
+
+		// An identified item without durability, holding charges of a skill. As a start item it costs 1 to repair.
+		ItemQueryTestItem item;
+		item.tUnit.dwClassId = 0;
+		item.tItemData.dwQualityNo = ITEMQUAL_NORMAL;
+		item.tItemData.dwItemFlags = IFLAG_IDENTIFIED | IFLAG_STARTITEM;
+		native_AllocStatListEx(&item.tUnit, 0, nullptr, nullptr);
+		inventory.equip(&item.tUnit, BODYLOC_RARM);
+
+		const auto compare = [&]()
 		{
-			// Input data
-			D2GameStrc moo_pGame{};
-			D2UnitStrc moo_pUnit{};
-			D2BitBufferStrc moo_pQuestFlags{};
-			D2GameStrc original_pGame{};
-			D2UnitStrc original_pUnit{};
-			D2BitBufferStrc original_pQuestFlags{};
-			int nNpcId{};
-			D2C_Difficulties nDifficulty{};
+			gnItemQueryRepairCallbacks = 0;
+			const auto moo_result = sut(nullptr, &tPlayer, nNpcId, DIFFMODE_NORMAL, &tQuestFlags, CountItemQueryRepairCallbacks);
+			const auto moo_callbacks = gnItemQueryRepairCallbacks;
 
-			const auto setup_data = [](
-				D2GameStrc& pGame,
-				D2UnitStrc& pUnit,
-				D2BitBufferStrc& pQuestFlags
-			) {
-				// TODO: Setup as needed
-			};
+			gnItemQueryRepairCallbacks = 0;
+			const auto original_result = original(nullptr, &tPlayer, nNpcId, DIFFMODE_NORMAL, &tQuestFlags, CountItemQueryRepairCallbacks);
+			const auto original_callbacks = gnItemQueryRepairCallbacks;
 
-			setup_data(moo_pGame, moo_pUnit, moo_pQuestFlags);
-			setup_data(original_pGame, original_pUnit, original_pQuestFlags);
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+			MOO_CHECK_EQ(moo_callbacks, original_callbacks, "Comparing callbacks");
+		};
 
-			// Call both implementations
-			const auto moo_result = sut(&moo_pGame, &moo_pUnit, nNpcId, nDifficulty, &moo_pQuestFlags, nullptr);
-			const auto original_result = original(&original_pGame, &original_pUnit, nNpcId, nDifficulty, &original_pQuestFlags, nullptr);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
-
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pGame, original_pGame, "Comparing pGame");
-			SKIP_MOO_CHECK_EQ(moo_pUnit, original_pUnit, "Comparing pUnit");
-			SKIP_MOO_CHECK_EQ(moo_pQuestFlags, original_pQuestFlags, "Comparing pQuestFlags");
+		SUBCASE("Used charge")
+		{
+			native_SetStat(item.tUnit.pStatListEx, STAT_ITEM_CHARGED_SKILL, (2 << 8) | 1, (nSkillId << 6) | 1);
+			compare();
 		}
+
+		SUBCASE("Full charges")
+		{
+			native_SetStat(item.tUnit.pStatListEx, STAT_ITEM_CHARGED_SKILL, (2 << 8) | 2, (nSkillId << 6) | 1);
+			compare();
+		}
+
+		native_FreeStatListEx(&item.tUnit);
 	}
 	
 	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD9F720 (#10833)" * doctest::skip(""))
@@ -4499,41 +4650,43 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD9FB50 (#10836)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(SetsTxtFixture<SetItemsTxtFixture<NoOpFixture>>, "D2Common.0x6FD9FB50 (#10836)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_GetSetItemsMask, dll_base + 0x0005FB50);
-		
-		SUBCASE("")
+
+		D2UnitStrc tPlayer{};
+		tPlayer.dwUnitType = UNIT_PLAYER;
+		ItemQueryTestInventory inventory(&tPlayer);
+
+		ItemQueryTestItem item;
+		item.tItemData.dwQualityNo = ITEMQUAL_SET;
+		item.tItemData.dwFileIndex = 0;
+		inventory.equip(&item.tUnit, BODYLOC_HEAD);
+
+		const int nPreviousSetItemsTxtRecordCount = sgptDataTables->nSetItemsTxtRecordCount;
+
+		SUBCASE("Set id beyond the set item count")
 		{
-			// Input data
-			D2UnitStrc moo_pPlayer{};
-			D2UnitStrc moo_pSetItem{};
-			D2UnitStrc original_pPlayer{};
-			D2UnitStrc original_pSetItem{};
-			BOOL bDontIgnoreInputItem{};
-
-			const auto setup_data = [](
-				D2UnitStrc& pPlayer,
-				D2UnitStrc& pSetItem
-			) {
-				// TODO: Setup as needed
-			};
-
-			setup_data(moo_pPlayer, moo_pSetItem);
-			setup_data(original_pPlayer, original_pSetItem);
-
-			// Call both implementations
-			const auto moo_result = sut(&moo_pPlayer, &moo_pSetItem, bDontIgnoreInputItem);
-			const auto original_result = original(&original_pPlayer, &original_pSetItem, bDontIgnoreInputItem);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
-
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pPlayer, original_pPlayer, "Comparing pPlayer");
-			SKIP_MOO_CHECK_EQ(moo_pSetItem, original_pSetItem, "Comparing pSetItem");
+			// The set's id is looked up in Sets.txt, not in SetItems.txt
+			sgptDataTables->nSetItemsTxtRecordCount = 1;
+			setitems_txt[0].nSetId = 1;
+			setitems_txt[0].nSetItems = 0;
 		}
+
+		SUBCASE("Stock set item")
+		{
+		}
+
+		for (const BOOL bDontIgnoreInputItem : { FALSE, TRUE })
+		{
+			CAPTURE(bDontIgnoreInputItem);
+			const auto moo_result = sut(&tPlayer, &item.tUnit, bDontIgnoreInputItem);
+			const auto original_result = original(&tPlayer, &item.tUnit, bDontIgnoreInputItem);
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+		}
+
+		sgptDataTables->nSetItemsTxtRecordCount = nPreviousSetItemsTxtRecordCount;
 	}
 	
 	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD9FD80 (#10838)" * doctest::skip(""))
