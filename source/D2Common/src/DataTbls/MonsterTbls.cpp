@@ -1436,8 +1436,14 @@ void __fastcall DATATBLS_LoadTreasureClassExTxt(HD2ARCHIVE hArchive)
 //1.14d: 0x00654F00
 int __stdcall DATATBLS_ShouldNeverCallInExpansion()
 {
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+	// 1.14d: halts, then exits at 0x00654F18 (push 0FFFFFFFFh / call) and never returns
+	FOG_DisplayHalt("should never call this function in expansion", __FILE__, __LINE__);
+	exit(-1);
+#else
 	FOG_DisplayWarning("should never call this function in expansion", __FILE__, __LINE__);
 	return 0;
+#endif
 }
 
 //D2Common.0x6FD69B90
