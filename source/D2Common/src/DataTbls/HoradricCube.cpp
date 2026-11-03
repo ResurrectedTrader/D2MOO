@@ -379,6 +379,7 @@ BOOL __fastcall DATATBLS_CubeMainOutputParser(D2CubeOutputItem* pCubeOutputParam
 					pCubeOutputParam->wItemID = nLinkId + 1;
 					pCubeOutputParam->wBaseItemId = nBaseItemId;
 					pCubeOutputParam->nILvl = (uint8_t)sgptDataTables->pSetItemsTxt[nLinkId].wLvl;
+					return FALSE;
 				}
 				else
 				{

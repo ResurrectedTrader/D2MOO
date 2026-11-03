@@ -1089,7 +1089,7 @@ void __fastcall DATATBLS_LoadAutomapTxt(HD2ARCHIVE hArchive)
 	for (int i = 0; i < nAutomapTxtRecordCount; ++i)
 	{
 		nLevelCounter = 0;
-		while (0 != strcmp(pAutomapTxt[i].szLevelName, gszAutomapLevelNames[nLevelCounter]))
+		while (pAutomapTxt[i].szLevelName[0] != '0' && 0 != strcmp(pAutomapTxt[i].szLevelName, gszAutomapLevelNames[nLevelCounter]))
 		{
 			++nLevelCounter;
 			D2_ASSERT(nLevelCounter < ARRAY_SIZE(gszAutomapLevelNames));
@@ -1097,7 +1097,7 @@ void __fastcall DATATBLS_LoadAutomapTxt(HD2ARCHIVE hArchive)
 		pAutomap[i].dwAutomapLevelType = nLevelCounter;
 
 		nTileCounter = 0;
-		while (0 != strcmp(pAutomapTxt[i].szTileName, gszAutomapTileNames[nTileCounter]))
+		while (pAutomapTxt[i].szTileName[0] != '0' && 0 != strcmp(pAutomapTxt[i].szTileName, gszAutomapTileNames[nTileCounter]))
 		{
 			++nTileCounter;
 			D2_ASSERT(nTileCounter < ARRAY_SIZE(gszAutomapTileNames));
@@ -1179,9 +1179,9 @@ int __fastcall DATATBLS_GetAutomapCellId(uint32_t dwAutomapLevelType, uint32_t d
 		i = nStart;
 		while (sgptDataTables->pAutoMap[i].dwAutomapLevelType != dwAutomapLevelType
 			   || sgptDataTables->pAutoMap[i].dwAutomapTileType != dwAutomapTileType
-			   || sgptDataTables->pAutoMap[i].nStyle != -1 && sgptDataTables->pAutoMap[i].nStyle != nStyle
+			   || sgptDataTables->pAutoMap[i].nStyle != -1 && (uint8_t)sgptDataTables->pAutoMap[i].nStyle != nStyle
 			   || sgptDataTables->pAutoMap[i].nStartSequence != -1
-			   && (sgptDataTables->pAutoMap[i].nStartSequence > nSequence || sgptDataTables->pAutoMap[i].nEndSequence < nSequence))
+			   && ((uint8_t)sgptDataTables->pAutoMap[i].nStartSequence > nSequence || (uint8_t)sgptDataTables->pAutoMap[i].nEndSequence < nSequence))
 		{
 			++i;
 			if (i >= nEnd)
