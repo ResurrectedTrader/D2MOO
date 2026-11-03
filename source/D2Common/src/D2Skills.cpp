@@ -195,7 +195,7 @@ int __stdcall SKILLS_GetSpecialParamValue(D2UnitStrc* pUnit, uint8_t nParamId, i
 		case 22:
 			if (nSkillLevel > 0)
 			{
-				int32_t nTemp = ((25 * pSkillsTxtRecord->wMana) + (nSkillLevel - 1) * pSkillsTxtRecord->wLevelMana);
+				int32_t nTemp = 25 * (pSkillsTxtRecord->wMana + (nSkillLevel - 1) * pSkillsTxtRecord->wLevelMana);
 				nTemp /= 2;
 				nTemp <<= pSkillsTxtRecord->nManaShift;
 				return nTemp >> 8;
@@ -265,16 +265,13 @@ int __stdcall SKILLS_GetSpecialParamValue(D2UnitStrc* pUnit, uint8_t nParamId, i
 		case 35:
 		case 36:
 		case 37:
-			if (nSkillLevel > 0)
+			pSkillDescTxtRecord = DATATBLS_GetSkillDescTxtRecord(pSkillsTxtRecord->wSkillDesc);
+			if (pSkillDescTxtRecord)
 			{
-				pSkillDescTxtRecord = DATATBLS_GetSkillDescTxtRecord(pSkillsTxtRecord->wSkillDesc);
-				if (pSkillDescTxtRecord)
+				nMissileId = pSkillDescTxtRecord->wDescMissile[nParamId - 35];
+				if (DATATBLS_GetMissilesTxtRecord(nMissileId))
 				{
-					nMissileId = pSkillDescTxtRecord->wDescMissile[nParamId - 35];
-					if (DATATBLS_GetMissilesTxtRecord(nMissileId))
-					{
-						return sgptDataTables->pMissilesTxt[nMissileId].wRange + nSkillLevel * sgptDataTables->pMissilesTxt[nMissileId].wLevRange;
-					}
+					return sgptDataTables->pMissilesTxt[nMissileId].wRange + nSkillLevel * sgptDataTables->pMissilesTxt[nMissileId].wLevRange;
 				}
 			}
 			break;
@@ -1561,6 +1558,10 @@ int __stdcall SKILLS_GetUseState(D2UnitStrc* pUnit, D2SkillStrc* pSkill)
 				{
 					bContinue = STATLIST_UnitGetItemStatOrSkillStatValue(pItem, STAT_ITEM_THROWABLE, 0);
 				}
+				else
+				{
+					bContinue = TRUE;
+				}
 			}
 
 			if (!bContinue)
@@ -1734,9 +1735,9 @@ BOOL __fastcall sub_6FDB1070(D2UnitStrc* pUnit, D2SkillStrc* pSkill)
 	D2UnitStrc* pItem = NULL;
 	int nSkillLevel = 0;
 
-	if (pUnit && pSkill && pUnit->pInventory)
+	if (pUnit && pSkill)
 	{
-		if (pSkill->nOwnerGUID != D2UnitInvalidGUID)
+		if (pUnit->pInventory && pSkill->nOwnerGUID != D2UnitInvalidGUID)
 		{
 			pItem = INVENTORY_GetFirstItem(pUnit->pInventory);
 
@@ -1764,7 +1765,7 @@ BOOL __fastcall sub_6FDB1070(D2UnitStrc* pUnit, D2SkillStrc* pSkill)
 					nSkillLevel = DATATBLS_GetMaxLevel(0);
 				}
 
-				return STATLIST_UnitGetStatValue(pItem, STAT_ITEM_CHARGED_SKILL, (pSkill->pSkillsTxt->nSkillId << 6) + (nSkillLevel & 0x3F)) > 0;
+				return (STATLIST_UnitGetStatValue(pItem, STAT_ITEM_CHARGED_SKILL, (pSkill->pSkillsTxt->nSkillId << 6) + (nSkillLevel & 0x3F)) & 0xFF) != 0;
 			}
 		}
 

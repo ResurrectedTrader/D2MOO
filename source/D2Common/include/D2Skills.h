@@ -110,7 +110,7 @@ struct D2SkillStrc
 
 	uint32_t nPar4;							//0x24
 	int32_t nSkillLevel;						//0x28
-	uint32_t nLevelBonus;						//0x2C
+	int32_t nLevelBonus;						//0x2C
 	int32_t nQuantity;							//0x30
 	D2UnitGUID nOwnerGUID;						//0x34 -1 = Native Skill
 	int32_t nCharges;							//0x38
