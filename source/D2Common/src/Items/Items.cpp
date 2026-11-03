@@ -4892,7 +4892,12 @@ BOOL __stdcall ITEMS_IsEthereal(D2UnitStrc* pItem)
 }
 
 //D2Common.0x6FDA0370 (#10883)
+//1.14d: 0x0062AE20
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, D2ItemSaveStrc* pItemSave, uint32_t dwVersion)
+#else
 BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, D2ItemSaveStrc* pItemSave)
+#endif
 {
 	D2BitBufferStrc pBuffer = {};
 	int dwCode = 0;
@@ -4931,6 +4936,13 @@ BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t
 		else
 		{
 			dwCode = BITMANIP_Read(&pBuffer, 32);
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+			// 1.14d: 0x0062AF03 (signed cmp dwVersion, 5Ch; jg) - saves up to version 92 store "nec " for "neg "
+			if ((int32_t)dwVersion <= 92 && dwCode == ' cen')
+			{
+				dwCode = ' gen';
+			}
+#endif
 		}
 
 		pItemSave->nClassId = DATATBLS_GetItemIdFromItemCode(dwCode);
@@ -4947,6 +4959,15 @@ BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t
 		return TRUE;
 	}
 }
+
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+//1.14d: 0x0062E410
+// The four-argument form the client and most of the server call: forwards with the current save version (push 60h at 0x0062E41C)
+BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, D2ItemSaveStrc* pItemSave)
+{
+	return ITEMS_GetCompactItemDataFromBitstream(pBitstream, nSize, bCheckForHeader, pItemSave, 0x60);
+}
+#endif
 
 //D2Common.0x6FDA0490 (#10882)
 //1.14d: 0x0062E430
