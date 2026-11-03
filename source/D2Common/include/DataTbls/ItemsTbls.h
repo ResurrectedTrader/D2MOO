@@ -61,7 +61,7 @@ struct D2RareAffixTxt
 
 struct D2SetItemsTxt
 {
-	uint16_t wSetItemId;					//0x00
+	int16_t wSetItemId;						//0x00
 	char szName[32];						//0x02
 	uint16_t wVersion;						//0x22
 	uint16_t wStringId;						//0x24
@@ -70,7 +70,7 @@ struct D2SetItemsTxt
 	int16_t nSetId;							//0x2C
 	int16_t nSetItems;						//0x2E
 	uint16_t wLvl;							//0x30
-	uint16_t wLvlReq;						//0x32
+	int16_t wLvlReq;						//0x32
 	uint32_t dwRarity;						//0x34
 	uint32_t dwCostMult;					//0x38
 	uint32_t dwCostAdd;						//0x3C
@@ -130,7 +130,7 @@ struct D2UniqueItemsTxt
 	uint16_t wRarity;						//0x30
 	uint16_t pad0x32;						//0x32
 	uint16_t wLvl;							//0x34
-	uint16_t wLvlReq;						//0x36
+	int16_t wLvlReq;						//0x36
 	char nChrTransform;						//0x38
 	char nInvTransform;						//0x39
 	char szFlippyFile[32];					//0x3A
@@ -409,8 +409,8 @@ struct D2ItemTypesTxt
 	uint8_t nBody;							//0x09
 	uint8_t nBodyLoc1;						//0x0A
 	uint8_t nBodyLoc2;						//0x0B
-	uint16_t wShoots;						//0x0C
-	uint16_t wQuiver;						//0x0E
+	int16_t wShoots;						//0x0C
+	int16_t wQuiver;						//0x0E
 	uint8_t nThrowable;						//0x10
 	uint8_t nReload;						//0x11
 	uint8_t nReEquip;						//0x12
