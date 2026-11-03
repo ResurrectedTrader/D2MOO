@@ -75,7 +75,13 @@ void __stdcall QUESTRECORD_CopyBufferToRecord(D2BitBufferStrc* pQuestRecord, uin
 
 	if (bResetStates)
 	{
-		for (int i = 0; i < 41; ++i)
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+		// 1.14d: 0x0065C547 (cmp esi, 2AEh) runs to bit 686 instead of 670, so quest word 41 is reset as well
+		const int nQuestWordsToReset = 42;
+#else
+		const int nQuestWordsToReset = 41;
+#endif
+		for (int i = 0; i < nQuestWordsToReset; ++i)
 		{
 			BITMANIP_MaskBitstate(pQuestRecord->pBuffer, 8 * sizeof(uint16_t) * i + QFLAG_PRIMARYGOALDONE);
 			BITMANIP_MaskBitstate(pQuestRecord->pBuffer, 8 * sizeof(uint16_t) * i + QFLAG_COMPLETEDNOW);
