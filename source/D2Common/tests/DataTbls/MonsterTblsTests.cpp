@@ -8,11 +8,16 @@
 
 #include <cstdarg>
 #include <filesystem>
+#include <fstream>
+#include <string>
 
 #include <TestDefinitions.h>
 #include <TestUtilities.h>
 
+#include <D2DataTbls.h>
 #include <DataTbls/MonsterTbls.h>
+#include <Fog.h>
+#include <Storm.h>
 #include <Units/Units.h>
 
 
@@ -460,20 +465,116 @@ TEST_SUITE("MonsterTblsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD68EC0" * doctest::skip(""))
+	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD68EC0")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(DATATBLS_LoadTreasureClassExTxt, dll_base + 0x00028EC0);
-		
-		SUBCASE("")
-		{
-			HD2ARCHIVE hArchive{};
 
-			// Call both implementations
-			sut(hArchive);
-			original(hArchive);
+		// The original loads into its own data tables, so that both results can be compared
+		const auto original_sgptDataTables = reinterpret_cast<D2DataTablesStrc**>(dll_base + 0x00096A20);
+		const auto original_data_tables = reinterpret_cast<D2DataTablesStrc*>(dll_base + 0x000A9608);
+		D2DataTablesStrc* const previous_original_sgptDataTables = *original_sgptDataTables;
+		*original_sgptDataTables = original_data_tables;
+
+		// Every item names the treasure class BaseTC followed by modifiers
+		const auto make_row = [](const char* szTreasureClass, const char* szItem)
+		{
+			D2TreasureClassExTxt row{};
+			strcpy_s(row.szTreasureClass, szTreasureClass);
+			if (szItem)
+			{
+				strcpy_s(row.szItem[0], szItem);
+				row.nProb[0] = 10;
+			}
+			return row;
+		};
+
+		const D2TreasureClassExTxt rows[] = {
+			make_row("Dummy", nullptr),
+			make_row("BaseTC", nullptr),
+			make_row("Control", "BaseTC,mul=3,cs=2,cu=4"),
+			make_row("LongKey", "BaseTC,mulx=5"),
+			make_row("LongKeyQuoted", "\"BaseTC,cs=2,cux=1,cr=2\""),
+			make_row("EmptyValue", "BaseTC,cu=4,cu="),
+			make_row("EmptyValueFirst", "BaseTC,mul=,cs=2"),
+		};
+
+		const auto data_directory = std::filesystem::current_path() / "treasureclassex_modifiers";
+		std::filesystem::remove_all(data_directory);
+		std::filesystem::create_directories(data_directory / "data/global/excel");
+		{
+			std::ofstream file((data_directory / "data/global/excel/treasureclassex.bin").string(), std::ios::binary);
+			const int record_count = ARRAY_SIZE(rows);
+			file.write(reinterpret_cast<const char*>(&record_count), sizeof(record_count));
+			file.write(reinterpret_cast<const char*>(rows), sizeof(rows));
 		}
+
+		struct TreasureClassTables
+		{
+			D2TxtLinkStrc* pTreasureClassExLinker;
+			D2TCExShortStrc* pTreasureClassEx;
+			int nTreasureClassEx;
+			int nTreasureClassItemTypes;
+		};
+		const auto swap_tables = [](D2DataTablesStrc* pDataTables, const TreasureClassTables& tables)
+		{
+			const TreasureClassTables previous = { pDataTables->pTreasureClassExLinker, pDataTables->pTreasureClassEx, pDataTables->nTreasureClassEx, pDataTables->nTreasureClassItemTypes };
+			pDataTables->pTreasureClassExLinker = tables.pTreasureClassExLinker;
+			pDataTables->pTreasureClassEx = tables.pTreasureClassEx;
+			pDataTables->nTreasureClassEx = tables.nTreasureClassEx;
+			pDataTables->nTreasureClassItemTypes = static_cast<short>(tables.nTreasureClassItemTypes);
+			return previous;
+		};
+
+		D2TxtLinkStrc* const moo_linker = static_cast<D2TxtLinkStrc*>(FOG_AllocLinker(__FILE__, __LINE__));
+		D2TxtLinkStrc* const original_linker = static_cast<D2TxtLinkStrc*>(FOG_AllocLinker(__FILE__, __LINE__));
+		const TreasureClassTables moo_previous = swap_tables(sgptDataTables, { moo_linker, nullptr, 0, 0 });
+		const TreasureClassTables original_previous = swap_tables(original_data_tables, { original_linker, nullptr, 0, 0 });
+
+		// Files are read relative to Storm's base path
+		char szPreviousBasePath[MAX_PATH]{};
+		SFileGetBasePath(szPreviousBasePath, sizeof(szPreviousBasePath));
+		std::string szBasePath = data_directory.string() + "\\";
+		SFileSetBasePath(szBasePath.data());
+
+		// Call both implementations
+		sut(nullptr);
+		original(nullptr);
+
+		SFileSetBasePath(szPreviousBasePath);
+
+		// Compare the loaded treasure classes
+		REQUIRE(sgptDataTables->nTreasureClassEx == ARRAY_SIZE(rows));
+		MOO_CHECK_EQ(sgptDataTables->nTreasureClassEx, original_data_tables->nTreasureClassEx, "Comparing nTreasureClassEx");
+		for (int i = 0; i < sgptDataTables->nTreasureClassEx; ++i)
+		{
+			const std::string szTreasureClass = rows[i].szTreasureClass;
+			CAPTURE(szTreasureClass);
+
+			D2TCExShortStrc& moo_record = sgptDataTables->pTreasureClassEx[i];
+			D2TCExShortStrc& original_record = original_data_tables->pTreasureClassEx[i];
+			MOO_CHECK_EQ(moo_record.nTypes, original_record.nTypes, "Comparing nTypes");
+			if (moo_record.nTypes != original_record.nTypes)
+			{
+				continue;
+			}
+
+			MOO_CHECK_EQ(moo_record, original_record, "Comparing pTreasureClassEx");
+			for (int nType = 0; nType < moo_record.nTypes; ++nType)
+			{
+				CAPTURE(nType);
+				MOO_CHECK_EQ(moo_record.pInfo[nType], original_record.pInfo[nType], "Comparing pInfo");
+			}
+		}
+
+		swap_tables(sgptDataTables, moo_previous);
+		swap_tables(original_data_tables, original_previous);
+		*original_sgptDataTables = previous_original_sgptDataTables;
+		FOG_FreeLinker(moo_linker);
+		FOG_FreeLinker(original_linker);
+		std::filesystem::remove_all(data_directory);
 	}
+	
 	
 	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD69B70 (#10656)" * doctest::skip(""))
 	{

@@ -1072,17 +1072,13 @@ __forceinline void __fastcall DATATBLS_ProcessAdditionalTreasureClassArguments(D
 			break;
 		}
 
+		// An empty value ("key=") is parsed as 0
 		*szArg = 0;
 		++szArg;
-		if (*szArg == 0)
-		{
-			FOG_Trace("Couldn't parse treasure class modifier!  (Line:%d  Item:%d)\n", nCounter, nItemCounter);
-			break;
-		}
 
 		// NOLINTBEGIN(bugprone-branch-clone)
 		szTmp = szNext;
-		if (!strncmp(szTmp, "mul", 3))
+		if (!strcmp(szTmp, "mul"))
 		{
 			szNext = strchr(szArg, ',');
 			if (szNext)
@@ -1092,7 +1088,7 @@ __forceinline void __fastcall DATATBLS_ProcessAdditionalTreasureClassArguments(D
 			}
 			pTCExInfo->nTxtRow = atoi(szArg);
 		}
-		else if (!strncmp(szTmp, "cu", 2))
+		else if (!strcmp(szTmp, "cu"))
 		{
 			szNext = strchr(szArg, ',');
 			if (szNext)
@@ -1102,7 +1098,7 @@ __forceinline void __fastcall DATATBLS_ProcessAdditionalTreasureClassArguments(D
 			}
 			pTCExInfo->nUnique = atoi(szArg);
 		}
-		else if (!strncmp(szTmp, "cs", 2))
+		else if (!strcmp(szTmp, "cs"))
 		{
 			szNext = strchr(szArg, ',');
 			if (szNext)
@@ -1112,7 +1108,7 @@ __forceinline void __fastcall DATATBLS_ProcessAdditionalTreasureClassArguments(D
 			}
 			pTCExInfo->nSet = atoi(szArg);
 		}
-		else if (!strncmp(szTmp, "cr", 2))
+		else if (!strcmp(szTmp, "cr"))
 		{
 			szNext = strchr(szArg, ',');
 			if (szNext)
@@ -1122,7 +1118,7 @@ __forceinline void __fastcall DATATBLS_ProcessAdditionalTreasureClassArguments(D
 			}
 			pTCExInfo->nRare = atoi(szArg);
 		}
-		else if (!strncmp(szTmp, "cm", 2))
+		else if (!strcmp(szTmp, "cm"))
 		{
 			szNext = strchr(szArg, ',');
 			if (szNext)
@@ -1132,7 +1128,7 @@ __forceinline void __fastcall DATATBLS_ProcessAdditionalTreasureClassArguments(D
 			}
 			pTCExInfo->nMagic = atoi(szArg);
 		}
-		else if (!strncmp(szTmp, "ce", 2))
+		else if (!strcmp(szTmp, "ce"))
 		{
 			szNext = strchr(szArg, ',');
 			if (szNext)
@@ -1142,7 +1138,7 @@ __forceinline void __fastcall DATATBLS_ProcessAdditionalTreasureClassArguments(D
 			}
 			pTCExInfo->nSuperior = atoi(szArg);
 		}
-		else if (!strncmp(szTmp, "cg", 2))
+		else if (!strcmp(szTmp, "cg"))
 		{
 			szNext = strchr(szArg, ',');
 			if (szNext)
@@ -1152,7 +1148,7 @@ __forceinline void __fastcall DATATBLS_ProcessAdditionalTreasureClassArguments(D
 			}
 			pTCExInfo->nNormal = atoi(szArg);
 		}
-		else if (!strncmp(szTmp, "ma", 2))
+		else if (!strcmp(szTmp, "ma"))
 		{
 			szNext = strchr(szArg, ',');
 			if (szNext)
@@ -1162,7 +1158,7 @@ __forceinline void __fastcall DATATBLS_ProcessAdditionalTreasureClassArguments(D
 			}
 			pTCExInfo->nTxtRow = atoi(szArg);
 		}
-		else if (!strncmp(szTmp, "mg", 2))
+		else if (!strcmp(szTmp, "mg"))
 		{
 			szNext = strchr(szArg, ',');
 			if (szNext)
