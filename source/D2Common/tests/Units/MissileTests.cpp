@@ -8,12 +8,15 @@
 
 #include <cstdarg>
 #include <filesystem>
+#include <utility>
 
 #include <TestDefinitions.h>
 #include <TestUtilities.h>
 
 #include <Units/Missile.h>
 #include <Units/Units.h>
+
+#include <Fixtures/DataTbls/Fixtures.h>
 
 
 TEST_SUITE("MissileTests")
@@ -1481,42 +1484,42 @@ TEST_SUITE("MissileTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FDBBC50 (#11290)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(MissilesTxtFixture<NoOpFixture>, "D2Common.0x6FDBBC50 (#11290)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(MISSILE_GetSpecialParamValue, dll_base + 0x0007BC50);
-		
-		SUBCASE("")
+
+		SUBCASE("Range (28) with negative Range / LevRange words")
 		{
-			// Input data
-			D2UnitStrc moo_pMissile{};
-			D2UnitStrc moo_pOwner{};
-			D2UnitStrc original_pMissile{};
-			D2UnitStrc original_pOwner{};
-			uint8_t nParamId{};
-			int nMissileId{};
-			int nLevel{};
+			const int nMissileId = 0;
+			D2MissilesTxt* pMissilesTxtRecord = &missiles_txt[nMissileId];
+			const auto saved_range = pMissilesTxtRecord->wRange;
+			const auto saved_lev_range = pMissilesTxtRecord->wLevRange;
 
-			const auto setup_data = [](
-				D2UnitStrc& pMissile,
-				D2UnitStrc& pOwner
-			) {
-				// TODO: Setup as needed
-			};
+			const std::pair<uint16_t, uint16_t> ranges[] = { { 10, 2 }, { 0xFFFF, 0 }, { 0, 0xFFFF }, { 0x8000, 0xFFFE } };
+			for (const auto& [range, lev_range] : ranges)
+			{
+				CAPTURE(range);
+				CAPTURE(lev_range);
+				pMissilesTxtRecord->wRange = static_cast<int16_t>(range);
+				pMissilesTxtRecord->wLevRange = static_cast<int16_t>(lev_range);
 
-			setup_data(moo_pMissile, moo_pOwner);
-			setup_data(original_pMissile, original_pOwner);
+				for (int nLevel = 0; nLevel <= 3; ++nLevel)
+				{
+					CAPTURE(nLevel);
+					const uint8_t nParamId = 28;
 
-			// Call both implementations
-			const auto moo_result = sut(&moo_pMissile, &moo_pOwner, nParamId, nMissileId, nLevel);
-			const auto original_result = original(&original_pMissile, &original_pOwner, nParamId, nMissileId, nLevel);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+					// Call both implementations
+					const auto moo_result = sut(nullptr, nullptr, nParamId, nMissileId, nLevel);
+					const auto original_result = original(nullptr, nullptr, nParamId, nMissileId, nLevel);
 
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pMissile, original_pMissile, "Comparing pMissile");
-			SKIP_MOO_CHECK_EQ(moo_pOwner, original_pOwner, "Comparing pOwner");
+					// Compare return values
+					MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+				}
+			}
+
+			pMissilesTxtRecord->wRange = saved_range;
+			pMissilesTxtRecord->wLevRange = saved_lev_range;
 		}
 	}
 	

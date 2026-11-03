@@ -10,7 +10,7 @@
 //TODO: Find a better name
 struct D2UnkMonCompStrc
 {
-	char nComposit[12];
+	uint8_t nComposit[12];
 	//int unk0x04;
 	//int unk0x08;
 };
@@ -350,7 +350,7 @@ struct D2MonStatsTxt
 		uint8_t nMonStatsFlags[4];				//0x0C
 	};
 	uint32_t dwCode;						//0x10
-	uint16_t wMonSound;						//0x14
+	int16_t wMonSound;						//0x14
 	uint16_t wUMonSound;					//0x16
 	uint16_t wMonStatsEx;					//0x18
 	uint16_t wMonProp;						//0x1A
@@ -399,26 +399,26 @@ struct D2MonStatsTxt
 	uint8_t unk0xA7;						//0xA7
 	int16_t wSkillDamage;					//0xA8
 	uint16_t nLevel[3];						//0xAA
-	uint16_t nMinHP[3];						//0xB0
-	uint16_t nMaxHP[3];						//0xB6
-	uint16_t nAC[3];						//0xBC
-	uint16_t nA1TH[3];						//0xC2
-	uint16_t nA2TH[3];						//0xC8
-	uint16_t nS1TH[3];						//0xCE
-	uint16_t nExp[3];						//0xD4
-	uint16_t nA1MinD[3];					//0xDA
-	uint16_t nA1MaxD[3];					//0xE0
-	uint16_t nA2MinD[3];					//0xE6
-	uint16_t nA2MaxD[3];					//0xEC
-	uint16_t nS1MinD[3];					//0xF2
-	uint16_t nS1MaxD[3];					//0xF8
+	int16_t nMinHP[3];						//0xB0
+	int16_t nMaxHP[3];						//0xB6
+	int16_t nAC[3];						//0xBC
+	int16_t nA1TH[3];						//0xC2
+	int16_t nA2TH[3];						//0xC8
+	int16_t nS1TH[3];						//0xCE
+	int16_t nExp[3];						//0xD4
+	int16_t nA1MinD[3];					//0xDA
+	int16_t nA1MaxD[3];					//0xE0
+	int16_t nA2MinD[3];					//0xE6
+	int16_t nA2MaxD[3];					//0xEC
+	int16_t nS1MinD[3];					//0xF2
+	int16_t nS1MaxD[3];					//0xF8
 	uint8_t nElMode[3];						//0xFE
 	uint8_t nElType[3];						//0x101
 	uint8_t nElPct[3][3];					//0x104
 	uint8_t unk0x10D;						//0x10D
-	uint16_t nElMinD[3][3];					//0x10E
-	uint16_t nElMaxD[3][3];					//0x120
-	uint16_t nElDur[3][3];					//0x132
+	int16_t nElMinD[3][3];					//0x10E
+	int16_t nElMaxD[3][3];					//0x120
+	int16_t nElDur[3][3];					//0x132
 	int16_t nResistances[6][3];			//0x144
 	int8_t nColdEffect[3];					//0x168
 	uint8_t unk0x16B;						//0x16B
@@ -442,8 +442,8 @@ struct D2MonStats2Txt
 		uint32_t dwFlags;						//0x04
 		uint8_t nFlags[4];						//0x04
 	};
-	uint8_t nSizeX;							//0x08
-	uint8_t nSizeY;							//0x09
+	int8_t nSizeX;							//0x08
+	int8_t nSizeY;							//0x09
 	uint8_t nSpawnCol;						//0x0A
 	uint8_t nHeight;						//0x0B
 	uint8_t nOverlayHeight;					//0x0C

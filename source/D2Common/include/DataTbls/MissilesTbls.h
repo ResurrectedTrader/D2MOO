@@ -89,8 +89,8 @@ struct D2MissilesTxt
 	uint32_t dwDmgCalc;						//0x90
 	uint8_t nHitClass;						//0x94
 	uint8_t pad0x95;						//0x95
-	uint16_t wRange;						//0x96
-	uint16_t wLevRange;						//0x98
+	int16_t wRange;						//0x96
+	int16_t wLevRange;						//0x98
 	uint8_t nVel;							//0x9A
 	uint8_t nVelLev;						//0x9B
 	uint8_t nMaxVel;						//0x9C

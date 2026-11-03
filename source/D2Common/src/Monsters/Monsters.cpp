@@ -384,7 +384,7 @@ int __stdcall MONSTERS_GetHirelingExpForNextLevel(int nLevel, int nExpPerLevel)
 int __stdcall MONSTERS_GetHirelingResurrectionCost(D2UnitStrc* pHireling)
 {
 	const int nLevel = STATLIST_UnitGetStatValue(pHireling, STAT_LEVEL, 0);
-	return std::min(15 * ((nLevel * nLevel) / 2), 50000);
+	return std::min<uint32_t>(15 * ((nLevel * nLevel) / 2), 50000);
 }
 
 //D2Common.0x6FDA5270 (#11068)

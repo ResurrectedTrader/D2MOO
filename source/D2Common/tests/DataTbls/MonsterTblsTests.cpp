@@ -8,12 +8,15 @@
 
 #include <cstdarg>
 #include <filesystem>
+#include <vector>
 
 #include <TestDefinitions.h>
 #include <TestUtilities.h>
 
 #include <DataTbls/MonsterTbls.h>
 #include <Units/Units.h>
+
+#include <Fixtures/DataTbls/Fixtures.h>
 
 
 TEST_SUITE("MonsterTblsTests")
@@ -110,40 +113,110 @@ TEST_SUITE("MonsterTblsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD67BD0 (#11261)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(MonLvlTxtFixture<MonStatsTxtFixture<NoOpFixture>>, "D2Common.0x6FD67BD0 (#11261)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(DATATBLS_CalculateMonsterStatsByLevel, dll_base + 0x00027BD0);
-		
-		SUBCASE("")
+
+		SUBCASE("Stock records")
 		{
-			// Input data
-			D2MonStatsInitStrc moo_pMonStatsInit{};
-			D2MonStatsInitStrc original_pMonStatsInit{};
-			int nMonsterId{};
-			int nGameType{};
-			int nDifficulty{};
-			int nLevel{};
-			short nFlags{};
+			for (int nMonsterId = 0; nMonsterId < monstats_record_count; nMonsterId += 7)
+			{
+				for (int nDifficulty = 0; nDifficulty < 3; ++nDifficulty)
+				{
+					CAPTURE(nMonsterId);
+					CAPTURE(nDifficulty);
 
-			const auto setup_data = [](
-				D2MonStatsInitStrc& pMonStatsInit
-			) {
-				// TODO: Setup as needed
-			};
+					// Input data
+					D2MonStatsInitStrc moo_pMonStatsInit{};
+					D2MonStatsInitStrc original_pMonStatsInit{};
+					const int nGameType = nMonsterId & 1;
+					const int nLevel = 1 + nMonsterId % 90;
+					const short nFlags = 0x1FF;
 
-			setup_data(moo_pMonStatsInit);
-			setup_data(original_pMonStatsInit);
+					// Call both implementations
+					const auto moo_result = sut(nMonsterId, nGameType, nDifficulty, nLevel, nFlags, &moo_pMonStatsInit);
+					const auto original_result = original(nMonsterId, nGameType, nDifficulty, nLevel, nFlags, &original_pMonStatsInit);
 
-			// Call both implementations
-			const auto moo_result = sut(nMonsterId, nGameType, nDifficulty, nLevel, nFlags, &moo_pMonStatsInit);
-			const auto original_result = original(nMonsterId, nGameType, nDifficulty, nLevel, nFlags, &original_pMonStatsInit);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+					// Compare return values
+					MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
 
-			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pMonStatsInit, original_pMonStatsInit, "Comparing pMonStatsInit");
+					// Compare potentially modified input data
+					MOO_CHECK_EQ(moo_pMonStatsInit, original_pMonStatsInit, "Comparing pMonStatsInit");
+				}
+			}
+		}
+
+		SUBCASE("Stat words above 32767")
+		{
+			const int nMonsterId = 0;
+			D2MonStatsTxt* pMonStatsTxtRecord = &monstats_txt[nMonsterId];
+			const auto saved_record = *pMonStatsTxtRecord;
+
+			// MonStats loads these columns as words without a clamp
+			for (int i = 0; i < 3; ++i)
+			{
+				pMonStatsTxtRecord->nMinHP[i] = static_cast<int16_t>(40000);
+				pMonStatsTxtRecord->nMaxHP[i] = static_cast<int16_t>(40001);
+				pMonStatsTxtRecord->nAC[i] = static_cast<int16_t>(40002);
+				pMonStatsTxtRecord->nExp[i] = static_cast<int16_t>(40003);
+				pMonStatsTxtRecord->nA1TH[i] = static_cast<int16_t>(40004);
+				pMonStatsTxtRecord->nA1MinD[i] = static_cast<int16_t>(40005);
+				pMonStatsTxtRecord->nA1MaxD[i] = static_cast<int16_t>(40006);
+				pMonStatsTxtRecord->nA2TH[i] = static_cast<int16_t>(40007);
+				pMonStatsTxtRecord->nA2MinD[i] = static_cast<int16_t>(40008);
+				pMonStatsTxtRecord->nA2MaxD[i] = static_cast<int16_t>(40009);
+				pMonStatsTxtRecord->nS1TH[i] = static_cast<int16_t>(40010);
+				pMonStatsTxtRecord->nS1MinD[i] = static_cast<int16_t>(40011);
+				pMonStatsTxtRecord->nS1MaxD[i] = static_cast<int16_t>(40012);
+				for (int j = 0; j < 3; ++j)
+				{
+					pMonStatsTxtRecord->nElMinD[j][i] = static_cast<int16_t>(40013 + j);
+					pMonStatsTxtRecord->nElMaxD[j][i] = static_cast<int16_t>(40016 + j);
+					pMonStatsTxtRecord->nElDur[j][i] = static_cast<int16_t>(40019 + j);
+				}
+			}
+
+			for (const bool bNoRatio : { false, true })
+			{
+				CAPTURE(bNoRatio);
+				if (bNoRatio)
+				{
+					pMonStatsTxtRecord->dwMonStatsFlags |= MONSTATSFLAG_NORATIO;
+				}
+				else
+				{
+					pMonStatsTxtRecord->dwMonStatsFlags &= ~MONSTATSFLAG_NORATIO;
+				}
+
+				for (int nFlag = 0; nFlag < 9; ++nFlag)
+				{
+					for (int nDifficulty = 0; nDifficulty < 3; ++nDifficulty)
+					{
+						CAPTURE(nFlag);
+						CAPTURE(nDifficulty);
+
+						// Input data
+						D2MonStatsInitStrc moo_pMonStatsInit{};
+						D2MonStatsInitStrc original_pMonStatsInit{};
+						const int nGameType = 1;
+						const int nLevel = 10;
+						const short nFlags = static_cast<short>(1 << nFlag);
+
+						// Call both implementations
+						const auto moo_result = sut(nMonsterId, nGameType, nDifficulty, nLevel, nFlags, &moo_pMonStatsInit);
+						const auto original_result = original(nMonsterId, nGameType, nDifficulty, nLevel, nFlags, &original_pMonStatsInit);
+
+						// Compare return values
+						MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+
+						// Compare potentially modified input data
+						MOO_CHECK_EQ(moo_pMonStatsInit, original_pMonStatsInit, "Comparing pMonStatsInit");
+					}
+				}
+			}
+
+			*pMonStatsTxtRecord = saved_record;
 		}
 	}
 	
@@ -874,21 +947,59 @@ TEST_SUITE("MonsterTblsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD6BF80 (#11250)" * doctest::skip(""))
+	TEST_CASE_FIXTURE(MonSoundsTxtFixture<MonStatsTxtFixture<NoOpFixture>>, "D2Common.0x6FD6BF80 (#11250)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(DATATBLS_GetMonSoundsTxtRecordFromMonsterId, dll_base + 0x0002BF80);
-		
-		SUBCASE("")
-		{
-			int nMonsterId{};
 
-			// Call both implementations
-			const auto moo_result = sut(nMonsterId);
-			const auto original_result = original(nMonsterId);
-			
-			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+		SUBCASE("Stock records")
+		{
+			for (int nMonsterId = 0; nMonsterId < monstats_record_count; ++nMonsterId)
+			{
+				CAPTURE(nMonsterId);
+
+				// Call both implementations
+				const auto moo_result = sut(nMonsterId);
+				const auto original_result = original(nMonsterId);
+
+				// Compare return values
+				CHECK_EQ(moo_result, original_result);
+			}
+		}
+
+		SUBCASE("Sound index above 32767")
+		{
+			// The name linker stores any row index of a large MonSounds table in the word
+			std::vector<D2MonSoundsTxt> large_monsounds(0x8001);
+			sgptDataTables->pMonSoundsTxt = large_monsounds.data();
+			sgptDataTables->nMonSoundsTxtRecordCount = static_cast<int>(large_monsounds.size());
+			const auto original_monsounds = reinterpret_cast<D2MonSoundsTxt**>(dll_base + 0x000A9608 + 0x00000A84);
+			const auto original_record_count = reinterpret_cast<int*>(dll_base + 0x000A9608 + 0x00000A8C);
+			*original_monsounds = sgptDataTables->pMonSoundsTxt;
+			*original_record_count = sgptDataTables->nMonSoundsTxtRecordCount;
+
+			const int nMonsterId = 0;
+			D2MonStatsTxt* pMonStatsTxtRecord = &monstats_txt[nMonsterId];
+			const auto saved_sound = pMonStatsTxtRecord->wMonSound;
+
+			for (const uint16_t sound : { 0, 0x7FFF, 0x8000, 0xFFFF })
+			{
+				CAPTURE(sound);
+				pMonStatsTxtRecord->wMonSound = static_cast<int16_t>(sound);
+
+				// Call both implementations
+				const auto moo_result = sut(nMonsterId);
+				const auto original_result = original(nMonsterId);
+
+				// Compare return values
+				CHECK_EQ(moo_result, original_result);
+			}
+
+			pMonStatsTxtRecord->wMonSound = saved_sound;
+			sgptDataTables->pMonSoundsTxt = monsounds_txt.get();
+			sgptDataTables->nMonSoundsTxtRecordCount = monsounds_record_count;
+			*original_monsounds = sgptDataTables->pMonSoundsTxt;
+			*original_record_count = sgptDataTables->nMonSoundsTxtRecordCount;
 		}
 	}
 	
