@@ -264,7 +264,7 @@ struct D2StatesTxt
 	uint16_t wOnSound;						//0x26
 	uint16_t wOffSound;						//0x28
 	uint16_t wItemType;						//0x2A
-	char nItemTrans;						//0x2C
+	uint8_t nItemTrans;						//0x2C
 	uint8_t nGfxType;						//0x2D
 	uint16_t wGfxClass;						//0x2E
 	uint16_t wCltEvent;						//0x30

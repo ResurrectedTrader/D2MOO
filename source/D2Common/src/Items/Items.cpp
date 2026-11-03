@@ -885,7 +885,7 @@ BOOL __stdcall ITEMS_CanBeNormal(D2UnitStrc* pItem)
 		}
 	}
 
-	return 0;
+	return TRUE;
 }
 
 //D2Common.0x6FD992C0 (#10744)
@@ -3281,7 +3281,7 @@ void __stdcall ITEMS_SetSockets(D2UnitStrc* pItem, int nSockets)
 			nHeight = pItemsTxtRecord->nInvHeight;
 		}
 
-		if (nWidth * nHeight > 6)
+		if (nWidth * nHeight)
 		{
 			if (nWidth * nHeight <= 6)
 			{
@@ -3405,7 +3405,7 @@ const D2RunesTxt* __stdcall ITEMS_GetRunesTxtRecordFromItem(const D2UnitStrc* pI
 
 		const int nSockets = STATLIST_UnitGetStatValue(pItem, STAT_ITEM_NUMSOCKETS, 0);
 
-		if (nSockets != nSocketedItems)
+		if (!nSocketedItems || nSockets != nSocketedItems)
 		{
 			return nullptr;
 		}
@@ -3430,7 +3430,7 @@ const D2RunesTxt* __stdcall ITEMS_GetRunesTxtRecordFromItem(const D2UnitStrc* pI
 					++nRuneCounter;
 				}
 
-				if (bMatch)
+				if (bMatch && nRuneCounter >= nSockets)
 				{
 					// All runes are a match, now check if the item types correspond
 					bool isItemTypeExcluded = false;
@@ -3905,7 +3905,7 @@ uint8_t* __stdcall ITEMS_GetColor(D2UnitStrc* pPlayer, D2UnitStrc* pItem, uint8_
 		do
 		{
 			pMagicAffixTxtRecord = DATATBLS_GetMagicAffixTxtRecord(pItem->dwUnitType == UNIT_ITEM && pItem->pItemData ? pItem->pItemData->wMagicSuffix[nCounter] : 0);
-			if (pMagicAffixTxtRecord && pMagicAffixTxtRecord->nTransformColor != -1)
+			if (pMagicAffixTxtRecord && pMagicAffixTxtRecord->nTransformColor != 0xFF)
 			{
 				pItemsTxtRecord = DATATBLS_GetItemsTxtRecord(pItem->dwClassId);
 				if (pItemsTxtRecord->nTransform <= 0 || pItemsTxtRecord->nTransform >= 9 || pMagicAffixTxtRecord->nTransformColor >= 21)
@@ -3935,7 +3935,7 @@ uint8_t* __stdcall ITEMS_GetColor(D2UnitStrc* pPlayer, D2UnitStrc* pItem, uint8_
 		do
 		{
 			pMagicAffixTxtRecord = DATATBLS_GetMagicAffixTxtRecord(pItem->dwUnitType == UNIT_ITEM && pItem->pItemData ? pItem->pItemData->wMagicPrefix[nCounter] : 0);
-			if (pMagicAffixTxtRecord && pMagicAffixTxtRecord->nTransformColor != -1)
+			if (pMagicAffixTxtRecord && pMagicAffixTxtRecord->nTransformColor != 0xFF)
 			{
 				pItemsTxtRecord = DATATBLS_GetItemsTxtRecord(pItem->dwClassId);
 				if (pItemsTxtRecord->nTransform <= 0 || pItemsTxtRecord->nTransform >= 9 || pMagicAffixTxtRecord->nTransformColor >= 21)
@@ -4144,7 +4144,7 @@ uint8_t* __stdcall ITEMS_GetColor(D2UnitStrc* pPlayer, D2UnitStrc* pItem, uint8_
 	}
 
 	pAutoAffixTxtRecord = DATATBLS_GetMagicAffixTxtRecord(nAutoAffix);
-	if (pAutoAffixTxtRecord && pAutoAffixTxtRecord->nTransformColor != -1)
+	if (pAutoAffixTxtRecord && pAutoAffixTxtRecord->nTransformColor != 0xFF)
 	{
 		pItemsTxtRecord = DATATBLS_GetItemsTxtRecord(pItem->dwClassId);
 		if (pItemsTxtRecord->nTransform <= 0 || pItemsTxtRecord->nTransform >= 9 || pAutoAffixTxtRecord->nTransformColor >= 21)
@@ -4212,7 +4212,7 @@ BOOL __stdcall ITEMS_IsImbueable(D2UnitStrc* pItem)
 									pInventoryItem = INVENTORY_GetNextItem(pInventoryItem);
 									if (!pInventoryItem)
 									{
-										if ((!pItem->pItemData || !(pItem->pItemData->dwItemFlags & IFLAG_SOCKETED)) && (!pItem->pItemData || (pItem->pItemData->dwQualityNo >= 4 && pItem->pItemData->dwQualityNo <= 9)))
+										if ((!pItem->pItemData || !(pItem->pItemData->dwItemFlags & IFLAG_SOCKETED)) && (!pItem->pItemData || (pItem->pItemData->dwQualityNo < ITEMQUAL_MAGIC || pItem->pItemData->dwQualityNo > ITEMQUAL_TEMPERED)))
 										{
 											return TRUE;
 										}
@@ -4222,7 +4222,7 @@ BOOL __stdcall ITEMS_IsImbueable(D2UnitStrc* pItem)
 							}
 							else
 							{
-								if ((!pItem->pItemData || !(pItem->pItemData->dwItemFlags & IFLAG_SOCKETED)) && (!pItem->pItemData || (pItem->pItemData->dwQualityNo >= 4 && pItem->pItemData->dwQualityNo <= 9)))
+								if ((!pItem->pItemData || !(pItem->pItemData->dwItemFlags & IFLAG_SOCKETED)) && (!pItem->pItemData || (pItem->pItemData->dwQualityNo < ITEMQUAL_MAGIC || pItem->pItemData->dwQualityNo > ITEMQUAL_TEMPERED)))
 								{
 									return TRUE;
 								}
@@ -4464,37 +4464,22 @@ int __stdcall ITEMS_GetAllRepairCosts(D2GameStrc* pGame, D2UnitStrc* pUnit, int 
 			}
 
 			nStats = STATLIST_CopyStats(pItem, STAT_ITEM_CHARGED_SKILL, pStat, ARRAY_SIZE(pStat));
-			if (nStats <= 0)
+			for (nCounter = 0; nCounter < nStats; ++nCounter)
 			{
-				if (bCanBeRepaired)
+				if ((uint8_t)pStat[nCounter].nValue < (pStat[nCounter].nValue >> 8))
 				{
-					nRepairCosts += ITEMS_CalculateTransactionCost(pUnit, pItem, nDifficulty, pQuestFlags, nNpcId, D2C_TransactionTypes::TRANSACTIONTYPE_REPAIR);
-
-					if (pfCallback)
-					{
-						pfCallback(pGame, pItem, pUnit);
-					}
+					bCanBeRepaired = TRUE;
+					break;
 				}
 			}
-			else
-			{
-				nCounter = 0;
-				while ((uint8_t)pStat[nCounter].nValue >= pStat[nCounter].nValue >> 8)
-				{
-					++nCounter;
-					if (nCounter >= nStats)
-					{
-						if (bCanBeRepaired)
-						{
-							nRepairCosts += ITEMS_CalculateTransactionCost(pUnit, pItem, nDifficulty, pQuestFlags, nNpcId, D2C_TransactionTypes::TRANSACTIONTYPE_REPAIR);
 
-							if (pfCallback)
-							{
-								pfCallback(pGame, pItem, pUnit);
-							}
-						}
-						break;
-					}
+			if (bCanBeRepaired)
+			{
+				nRepairCosts += ITEMS_CalculateTransactionCost(pUnit, pItem, nDifficulty, pQuestFlags, nNpcId, D2C_TransactionTypes::TRANSACTIONTYPE_REPAIR);
+
+				if (pfCallback)
+				{
+					pfCallback(pGame, pItem, pUnit);
 				}
 			}
 		}
@@ -4606,7 +4591,7 @@ uint32_t __stdcall ITEMS_GetSetItemsMask(D2UnitStrc* pPlayer, D2UnitStrc* pSetIt
 
 	int nFileIndex = pSetItem->pItemData->dwFileIndex;
 	D2SetItemsTxt* pSetItemTxt = DATATBLS_GetSetItemsTxtRecord(nFileIndex);
-	if(!pSetItemTxt || !DATATBLS_GetSetsTxtRecordFromSetItemId(pSetItemTxt->nSetId))
+	if(!pSetItemTxt || !DATATBLS_GetSetsTxtRecord(pSetItemTxt->nSetId))
 	{
 		return 0;
 	}

@@ -550,7 +550,7 @@ struct D2MagicAffixTxt
 	D2PropertyStrc pProperties[3];					//0x24
 	uint8_t wSpawnable;								//0x54
 	uint8_t padding0x54;							//0x54
-	char nTransformColor;							//0x56
+	uint8_t nTransformColor;						//0x56
 	uint8_t unk0x57;								//0x57
 	uint32_t dwLevel;								//0x58
 	uint32_t dwGroup;								//0x5C

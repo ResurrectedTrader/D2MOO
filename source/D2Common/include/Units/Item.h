@@ -25,7 +25,7 @@ struct D2ItemDataStrc
 	uint32_t dwRealmData[2];				//0x1C
 	uint32_t dwActionStamp;					//0x24
 	int32_t dwFileIndex;					//0x28
-	uint32_t dwItemLevel;					//0x2C
+	int32_t dwItemLevel;					//0x2C
 	uint16_t wItemFormat;					//0x30
 	uint16_t wRarePrefix;					//0x32
 	uint16_t wRareSuffix;					//0x34
