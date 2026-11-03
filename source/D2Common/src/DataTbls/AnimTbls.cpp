@@ -113,9 +113,14 @@ void __stdcall DATATBLS_UnitAnimInfoDebugSet(D2UnitStrc* pUnit, int nAnimSpeed)
 	if (D2AnimDataRecordStrc* pRecord = DATATBLS_GetAnimDataRecordFromPath(szPath))
 	{
 		pRecord->dwAnimSpeed = nAnimSpeed;
+		return;
 	}
+
+#if !(D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14)
+	// 1.14d: 0x0066AA66 (jz over the store at 0x0066AA6B) returns without halting when no record matches
 	FOG_DisplayHalt("DataTablesUnitAnimInfoDebugSet", __FILE__, __LINE__);
 	exit(-1);
+#endif
 }
 
 //D2Common.0x6FD47700 (#10641)
@@ -136,7 +141,7 @@ BOOL __stdcall DATATBLS_GetAnimDataInfo(char* szPath, int* pOutLength, int* pOut
 			}
 		}
 
-		*pOutFirstFrameTagged = 0;
+		*pOutFirstFrameTagged = pRecord->dwFrames;
 		return TRUE;
 	}
 

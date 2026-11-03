@@ -1,7 +1,7 @@
 #pragma once
 
 
-//#define ANIM_TBLS_TESTS
+#define ANIM_TBLS_TESTS
 //#define ARENA_TBLS_TESTS
 //#define BELTS_TBLS_TESTS
 //#define FIELD_TBLS_TESTS
