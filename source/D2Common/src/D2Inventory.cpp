@@ -2970,7 +2970,13 @@ void __fastcall sub_6FD917B0(D2UnitStrc* pUnit, uint8_t* a2, uint8_t* pColor, D2
 			if (nComponent == COMPOSIT_LEFTHAND)
 			{
 				int nItemId = 0;
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+				// 1.14d: 0x0063DA1D pushes 2074696Ch, the real "lit " code, so the lookup finds the record
+				D2ItemsTxt* pItemsTxtRecord = DATATBLS_GetItemRecordFromItemCode(' til', &nItemId);
+#else
+				// 1.10f pushes 74696C00h (00 'l' 'i' 't'), which matches no items.txt code, so this branch never changes the slot
 				D2ItemsTxt* pItemsTxtRecord = DATATBLS_GetItemRecordFromItemCode('til\0', &nItemId);
+#endif
 				if (pItemsTxtRecord)
 				{
 					INVENTORY_InitializeComponentArray();
