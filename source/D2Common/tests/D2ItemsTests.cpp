@@ -4338,7 +4338,7 @@ TEST_SUITE("D2ItemsTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(ItemTypesTxtFixture<ItemsTxtFixture<NoOpFixture>>, "D2Common.0x6FD9E710 (#10829)")
+	TEST_CASE_FIXTURE(StatesTxtFixture<ItemTypesTxtFixture<ItemsTxtFixture<NoOpFixture>>>, "D2Common.0x6FD9E710 (#10829)")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_GetColor, dll_base + 0x0005E710);
@@ -4350,7 +4350,6 @@ TEST_SUITE("D2ItemsTests")
 		}
 		REQUIRE(nClassId < items_record_count);
 
-		// A suffix and a prefix, both with a transform colour
 		D2MagicAffixTxt tMagicAffixTxt[2]{};
 		D2MagicAffixDataTbl tPreviousMagicAffixDataTables = sgptDataTables->pMagicAffixDataTables;
 		sgptDataTables->pMagicAffixDataTables.nMagicAffixTxtRecordCount = 2;
@@ -4363,11 +4362,27 @@ TEST_SUITE("D2ItemsTests")
 		*original_magicaffix_record_count = 2;
 		*original_magicaffix = tMagicAffixTxt;
 
+		// A single colour state, which the player can have
+		constexpr int nColourState = 1;
+		short nColourStates[1] = { nColourState };
+		short* pPreviousColourStates = sgptDataTables->pColourStates;
+		const int nPreviousColourStateCount = sgptDataTables->nColourStates;
+		sgptDataTables->pColourStates = nColourStates;
+		sgptDataTables->nColourStates = 1;
+
+		const int nStateFlagCount = (states_record_count + 31) / 32;
+		auto pStateFlags = std::make_unique<uint32_t[]>(2 * nStateFlagCount);
+		D2StatListExStrc tPlayerStatListEx{};
+		tPlayerStatListEx.dwFlags = STATLIST_EXTENDED;
+		tPlayerStatListEx.StatFlags = pStateFlags.get();
+		D2UnitStrc tPlayer{};
+		tPlayer.dwUnitType = UNIT_PLAYER;
+		tPlayer.pStatListEx = &tPlayerStatListEx;
+		D2UnitStrc* pPlayer = nullptr;
+
 		ItemQueryTestItem item;
 		item.tUnit.dwClassId = nClassId;
 		item.tItemData.dwQualityNo = ITEMQUAL_MAGIC;
-		item.tItemData.wMagicSuffix[0] = 1;
-		item.tItemData.wMagicPrefix[0] = 2;
 
 		const auto compare = [&]()
 		{
@@ -4377,28 +4392,61 @@ TEST_SUITE("D2ItemsTests")
 				uint8_t moo_color = 0xAA;
 				uint8_t original_color = 0xAA;
 				// The palettes are not loaded, so compare the returned addresses only
-				const auto moo_result = reinterpret_cast<uintptr_t>(sut(nullptr, &item.tUnit, &moo_color, nTransType));
-				const auto original_result = reinterpret_cast<uintptr_t>(original(nullptr, &item.tUnit, &original_color, nTransType));
+				const auto moo_result = reinterpret_cast<uintptr_t>(sut(pPlayer, &item.tUnit, &moo_color, nTransType));
+				const auto original_result = reinterpret_cast<uintptr_t>(original(pPlayer, &item.tUnit, &original_color, nTransType));
 				MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
 				MOO_CHECK_EQ(moo_color, original_color, "Comparing color");
 			}
 		};
 
-		SUBCASE("Colour out of range")
+		SUBCASE("Suffix colour out of range")
 		{
 			// Colour bytes are unsigned, so 0xFE is out of range rather than -2
+			item.tItemData.wMagicSuffix[0] = 1;
 			tMagicAffixTxt[0].nTransformColor = 0xFE;
 			compare();
 		}
 
-		SUBCASE("No colour")
+		SUBCASE("Suffix without colour")
 		{
 			// 0xFF marks an affix without a colour, so the prefix colour applies
+			item.tItemData.wMagicSuffix[0] = 1;
+			item.tItemData.wMagicPrefix[0] = 2;
 			tMagicAffixTxt[0].nTransformColor = 0xFF;
 			tMagicAffixTxt[1].nTransformColor = 5;
 			compare();
 		}
 
+		SUBCASE("Prefix without colour")
+		{
+			item.tItemData.wMagicPrefix[0] = 1;
+			item.tItemData.wMagicPrefix[1] = 2;
+			tMagicAffixTxt[0].nTransformColor = 0xFF;
+			tMagicAffixTxt[1].nTransformColor = 5;
+			compare();
+		}
+
+		SUBCASE("Auto affix without colour")
+		{
+			item.tItemData.dwQualityNo = ITEMQUAL_NORMAL;
+			item.tItemData.wAutoAffix = 1;
+			tMagicAffixTxt[0].nTransformColor = 0xFF;
+			compare();
+		}
+
+		SUBCASE("Colour state without colour")
+		{
+			// A blank itemtrans (0xFF) is out of range, so the state does not colour the item
+			item.tItemData.dwQualityNo = ITEMQUAL_NORMAL;
+			states_txt[nColourState].wItemType = items_txt[nClassId].wType[0];
+			states_txt[nColourState].nItemTrans = 0xFF;
+			pStateFlags[nColourState / 32] |= gdwBitMasks[nColourState % 32];
+			pPlayer = &tPlayer;
+			compare();
+		}
+
+		sgptDataTables->pColourStates = pPreviousColourStates;
+		sgptDataTables->nColourStates = nPreviousColourStateCount;
 		sgptDataTables->pMagicAffixDataTables = tPreviousMagicAffixDataTables;
 		*original_magicaffix_record_count = nPreviousOriginalMagicAffixRecordCount;
 		*original_magicaffix = pPreviousOriginalMagicAffix;
@@ -4427,21 +4475,47 @@ TEST_SUITE("D2ItemsTests")
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(ITEMS_IsImbueable, dll_base + 0x0005EEA0);
 
-		// Only items below magic quality (or above tempered) can be imbued
-		for (int nQuality = ITEMQUAL_INFERIOR; nQuality <= ITEMQUAL_TEMPERED; ++nQuality)
+		const auto compare = [&](bool bWithInventory)
 		{
-			for (int nClassId = 0; nClassId < items_record_count; ++nClassId)
+			// Only items below magic quality (or above tempered) can be imbued
+			for (int nQuality = ITEMQUAL_INFERIOR; nQuality <= ITEMQUAL_TEMPERED; ++nQuality)
 			{
-				CAPTURE(nQuality);
-				CAPTURE(nClassId);
-				ItemQueryTestItem item;
-				item.tUnit.dwClassId = nClassId;
-				item.tItemData.dwQualityNo = nQuality;
+				for (int nClassId = 0; nClassId < items_record_count; ++nClassId)
+				{
+					CAPTURE(nQuality);
+					CAPTURE(nClassId);
+					ItemQueryTestItem item;
+					item.tUnit.dwClassId = nClassId;
+					item.tItemData.dwQualityNo = nQuality;
 
-				const auto moo_result = sut(&item.tUnit);
-				const auto original_result = original(&item.tUnit);
-				MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+					// An inventory holding only a unit that is not an item
+					D2UnitStrc tNotAnItem{};
+					tNotAnItem.dwUnitType = UNIT_MONSTER;
+					D2InventoryStrc tInventory{};
+					if (bWithInventory)
+					{
+						tInventory.dwSignature = D2C_InventoryHeader;
+						tInventory.pOwner = &item.tUnit;
+						tInventory.pFirstItem = &tNotAnItem;
+						tInventory.pLastItem = &tNotAnItem;
+						item.tUnit.pInventory = &tInventory;
+					}
+
+					const auto moo_result = sut(&item.tUnit);
+					const auto original_result = original(&item.tUnit);
+					MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+				}
 			}
+		};
+
+		SUBCASE("No inventory")
+		{
+			compare(false);
+		}
+
+		SUBCASE("No item in the inventory")
+		{
+			compare(true);
 		}
 	}
 	
