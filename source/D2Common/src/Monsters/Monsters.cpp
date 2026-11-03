@@ -101,6 +101,11 @@ int __fastcall MONSTERS_HirelingInit(BOOL bExpansion, D2UnitStrc* pMonster, int 
 	const int32_t nRand = ((uint32_t)SEED_RollRandomNumber(&pSeed) % 5);
 
 	int32_t nLevelUps = 0;
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+	// 1.14d: 0x00663895 - the offered hireling is 5 to 1 levels below the player (at least level 2)
+	// instead of up to 4 levels above its hireling.txt base level, and every per-level stat scales with the distance to that base level
+	nLevelUps = std::max(nLevel - 5 + nRand, 2) - pHirelingTxtRecord->nHirelingLevel;
+#else
 	if (pHirelingTxtRecord->nHirelingLevel + nRand >= nLevel)
 	{
 		nLevelUps = nLevel - pHirelingTxtRecord->nHirelingLevel;
@@ -109,6 +114,7 @@ int __fastcall MONSTERS_HirelingInit(BOOL bExpansion, D2UnitStrc* pMonster, int 
 	{
 		nLevelUps = nRand;
 	}
+#endif
 
 	pHirelingInit->nLevel = pHirelingTxtRecord->nHirelingLevel + nLevelUps;
 	pHirelingInit->nHitpoints = std::max(nLevelUps * pHirelingTxtRecord->dwHitpointsPerLvl + pHirelingTxtRecord->dwHitpoints, 40);
