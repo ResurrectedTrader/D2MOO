@@ -159,8 +159,13 @@ void __fastcall ENVIRONMENT_UpdateLightIntensity(D2DrlgEnvironmentStrc* pEnviron
 	}
 	else
 	{
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+		// 1.14d: 0x0061BC15 (fdiv) divides by 180 instead of multiplying by 1/180
+		const double dAngle = (double)pEnvironment->nTicks / (double)pEnvironment->nTimeRate / (double)ENV_HALF_CIRCLE_DEGREES * (double)(float)M_PI;
+#else
 		// Original multiplies by 1/180 (instead of dividing by 180) and uses PI rounded to float precision
 		const double dAngle = (double)pEnvironment->nTicks / (double)pEnvironment->nTimeRate * (1.0 / ENV_HALF_CIRCLE_DEGREES) * (double)(float)M_PI;
+#endif
 
 		pEnvironment->fCos = float(-cos(dAngle));
 		pEnvironment->fSin = float(sin(dAngle));

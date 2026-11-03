@@ -2841,12 +2841,20 @@ void __stdcall ITEMMODS_SetRandomElixirFileIndex(D2UnitStrc* pItem)
 }
 
 //D2Common.0x6FD95F90 (#10868)
+//1.14d: 0x00660240
 void __stdcall ITEMMODS_AddCraftPropertyList(D2UnitStrc* pItem, D2PropertyStrc* pProperty, int nUnused)
 {
 	D2_MAYBE_UNUSED(nUnused);
 	if (pItem)
 	{
 		sub_6FD95810(PROPMODE_UNUSED, NULL, pItem, pProperty, 0, 0, 0, pProperty, 0, STATLIST_MAGIC, NULL);
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+		// 1.14d: tests IFLAG_ETHEREAL at 0x0066026F and rescales the new properties (call at 0x00660280)
+		if (ITEMS_CheckItemFlag(pItem, IFLAG_ETHEREAL, __LINE__, __FILE__))
+		{
+			ITEMMODS_ApplyEthereality(pItem);
+		}
+#endif
 	}
 }
 

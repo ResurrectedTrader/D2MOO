@@ -3615,6 +3615,11 @@ D2UnitGUID __stdcall UNITS_GetWeaponGUID(D2UnitStrc* pUnit)
 //1.14d: 0x00623460
 unsigned int __stdcall UNITS_GetStashGoldLimit(D2UnitStrc* pUnit)
 {
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+	// 1.14d: 0x00623460 returns a flat cap (mov eax, 2625A0h), no longer derived from the level
+	D2_MAYBE_UNUSED(pUnit);
+	return 2500000;
+#else
 	int nMultiplier = 0;
 	int nLevel = 0;
 
@@ -3629,6 +3634,7 @@ unsigned int __stdcall UNITS_GetStashGoldLimit(D2UnitStrc* pUnit)
 	}
 
 	return 50000 * nMultiplier;
+#endif
 }
 
 //D2Common.0x6FDC2680 (#10317)

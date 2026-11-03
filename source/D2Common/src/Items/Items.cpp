@@ -4892,7 +4892,12 @@ BOOL __stdcall ITEMS_IsEthereal(D2UnitStrc* pItem)
 }
 
 //D2Common.0x6FDA0370 (#10883)
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+//1.14d: 0x0062AE20
+BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, D2ItemSaveStrc* pItemSave, uint32_t dwVersion)
+#else
 BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, D2ItemSaveStrc* pItemSave)
+#endif
 {
 	D2BitBufferStrc pBuffer = {};
 	int dwCode = 0;
@@ -4931,6 +4936,13 @@ BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t
 		else
 		{
 			dwCode = BITMANIP_Read(&pBuffer, 32);
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+			// 1.14d: 0x0062AF03 (signed cmp dwVersion, 5Ch; jg) - saves up to version 92 store "nec " for "neg "
+			if ((int32_t)dwVersion <= 92 && dwCode == ' cen')
+			{
+				dwCode = ' gen';
+			}
+#endif
 		}
 
 		pItemSave->nClassId = DATATBLS_GetItemIdFromItemCode(dwCode);
@@ -4947,6 +4959,14 @@ BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t
 		return TRUE;
 	}
 }
+
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+//1.14d: 0x0062E410
+BOOL __stdcall ITEMS_GetCompactItemDataFromBitstream(uint8_t* pBitstream, size_t nSize, BOOL bCheckForHeader, D2ItemSaveStrc* pItemSave)
+{
+	return ITEMS_GetCompactItemDataFromBitstream(pBitstream, nSize, bCheckForHeader, pItemSave, 0x60);
+}
+#endif
 
 //D2Common.0x6FDA0490 (#10882)
 //1.14d: 0x0062E430
@@ -6441,6 +6461,23 @@ size_t __stdcall ITEMS_SerializeItemToBitstream(D2UnitStrc* pItem, uint8_t* pBit
 	}
 }
 
+// Inlined in ITEMS_WriteBitsToBitstream and in every clamped field of the item serializers
+static int ITEMS_ClampBitstreamValue(int nValue, int nMax)
+{
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+	// 1.14d: 0x0062AF58 (and every inlined copy, e.g. 0x00630050) compares unsigned (cmp/sbb, jb):
+	// the "<= 0 -> 0" step is a no-op and a negative value is written as nMax
+	return (uint32_t)nValue < (uint32_t)nMax ? nValue : nMax;
+#else
+	if (nValue <= 0)
+	{
+		return 0;
+	}
+
+	return nValue >= nMax ? nMax : nValue;
+#endif
+}
+
 //Inlined in D2Common.0x6FDA2C00
 void __fastcall ITEMS_SerializeItemCompact(D2UnitStrc* pItem, D2BitBufferStrc* pBuffer, D2ItemsTxt* pItemsTxtRecord, BOOL bServer)
 {
@@ -6457,17 +6494,7 @@ void __fastcall ITEMS_SerializeItemCompact(D2UnitStrc* pItem, D2BitBufferStrc* p
 
 
 	nItemFormat = ITEMS_GetItemFormat(pItem);
-	if (nItemFormat > 0)
-	{
-		if (nItemFormat >= 1023)
-		{
-			nItemFormat = 1023;
-		}
-	}
-	else
-	{
-		nItemFormat = 0;
-	}
+	nItemFormat = ITEMS_ClampBitstreamValue(nItemFormat, 1023);
 	BITMANIP_Write(pBuffer, nItemFormat, 10);
 
 	ITEMS_WriteBitsToBitstream(pBuffer, pItem->dwAnimMode, 3);
@@ -6482,31 +6509,11 @@ void __fastcall ITEMS_SerializeItemCompact(D2UnitStrc* pItem, D2BitBufferStrc* p
 		ITEMS_WriteBitsToBitstream(pBuffer, ITEMS_GetBodyLocation(pItem), 4);
 
 		nX = UNITS_GetXPosition(pItem);
-		if (nX > 0)
-		{
-			if (nX >= 15)
-			{
-				nX = 15;
-			}
-		}
-		else
-		{
-			nX = 0;
-		}
+		nX = ITEMS_ClampBitstreamValue(nX, 15);
 		ITEMS_WriteBitsToBitstream(pBuffer, nX, 4);
 
 		nY = UNITS_GetYPosition(pItem);
-		if (nY > 0)
-		{
-			if (nY >= 15)
-			{
-				nY = 15;
-			}
-		}
-		else
-		{
-			nY = 0;
-		}
+		nY = ITEMS_ClampBitstreamValue(nY, 15);
 		ITEMS_WriteBitsToBitstream(pBuffer, nY, 4);
 
 		ITEMS_WriteBitsToBitstream(pBuffer, (ITEMS_GetInvPage(pItem) + 1), 3);
@@ -6645,11 +6652,7 @@ void __fastcall ITEMS_WriteBitsToBitstream(D2BitBufferStrc* pBuffer, int nData, 
 {
 	if (nBits != 32)
 	{
-		nData &= (nData <= 0) - 1;
-		if (nData >= (1 << nBits) - 1)
-		{
-			nData = (1 << nBits) - 1;
-		}
+		nData = ITEMS_ClampBitstreamValue(nData, (1 << nBits) - 1);
 	}
 
 	return BITMANIP_Write(pBuffer, nData, nBits);
@@ -6713,119 +6716,39 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 	D2_ASSERT(pItemData);
 
 	nItemFormat = pItemData->wItemFormat;
-	if (nItemFormat > 0)
-	{
-		if (nItemFormat >= 1023)
-		{
-			nItemFormat = 1023;
-		}
-	}
-	else
-	{
-		nItemFormat = 0;
-	}
+	nItemFormat = ITEMS_ClampBitstreamValue(nItemFormat, 1023);
 	BITMANIP_Write(pBuffer, nItemFormat, 10);
 
 	nAnimMode = pItem->dwAnimMode;
-	if (nAnimMode > 0)
-	{
-		if (nAnimMode >= 7)
-		{
-			nAnimMode = 7;
-		}
-	}
-	else
-	{
-		nAnimMode = 0;
-	}
+	nAnimMode = ITEMS_ClampBitstreamValue(nAnimMode, 7);
 	BITMANIP_Write(pBuffer, nAnimMode, 3);
 
 	if (nAnimMode == IMODE_ONGROUND || nAnimMode == IMODE_DROPPING)
 	{
 		UNITS_GetCoords(pItem, &pCoords);
 
-		if (pCoords.nX > 0)
-		{
-			if (pCoords.nX >= 65535)
-			{
-				pCoords.nX = 65535;
-			}
-		}
-		else
-		{
-			pCoords.nX = 0;
-		}
+		pCoords.nX = ITEMS_ClampBitstreamValue(pCoords.nX, 65535);
 		BITMANIP_Write(pBuffer, pCoords.nX, 16);
 
-		if (pCoords.nY > 0)
-		{
-			if (pCoords.nY >= 65535)
-			{
-				pCoords.nY = 65535;
-			}
-		}
-		else
-		{
-			pCoords.nY = 0;
-		}
+		pCoords.nY = ITEMS_ClampBitstreamValue(pCoords.nY, 65535);
 		BITMANIP_Write(pBuffer, pCoords.nY, 16);
 	}
 	else
 	{
 		nBodyLoc = pItemData->nBodyLoc;
-		if (nBodyLoc > 0)
-		{
-			if (nBodyLoc >= 15)
-			{
-				nBodyLoc = 15;
-			}
-		}
-		else
-		{
-			nBodyLoc = 0;
-		}
+		nBodyLoc = ITEMS_ClampBitstreamValue(nBodyLoc, 15);
 		BITMANIP_Write(pBuffer, nBodyLoc, 4);
 
 		UNITS_GetCoords(pItem, &pCoords);
 
-		if (pCoords.nX > 0)
-		{
-			if (pCoords.nX >= 15)
-			{
-				pCoords.nX = 15;
-			}
-		}
-		else
-		{
-			pCoords.nX = 0;
-		}
+		pCoords.nX = ITEMS_ClampBitstreamValue(pCoords.nX, 15);
 		BITMANIP_Write(pBuffer, pCoords.nX, 4);
 
-		if (pCoords.nY > 0)
-		{
-			if (pCoords.nY >= 15)
-			{
-				pCoords.nY = 15;
-			}
-		}
-		else
-		{
-			pCoords.nY = 0;
-		}
+		pCoords.nY = ITEMS_ClampBitstreamValue(pCoords.nY, 15);
 		BITMANIP_Write(pBuffer, pCoords.nY, 4);
 
 		nStorePage = pItemData->nInvPage + 1;
-		if (nStorePage > 0)
-		{
-			if (nStorePage >= 7)
-			{
-				nStorePage = 7;
-			}
-		}
-		else
-		{
-			nStorePage = 0;
-		}
+		nStorePage = ITEMS_ClampBitstreamValue(nStorePage, 7);
 		BITMANIP_Write(pBuffer, nStorePage, 3);
 	}
 
@@ -6860,17 +6783,7 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 			}
 			while (pInventoryItem);
 
-			if (nSocketedItems > 0)
-			{
-				if (nSocketedItems >= 7)
-				{
-					nSocketedItems = 7;
-				}
-			}
-			else
-			{
-				nSocketedItems = 0;
-			}
+			nSocketedItems = ITEMS_ClampBitstreamValue(nSocketedItems, 7);
 		}
 	}
 	BITMANIP_Write(pBuffer, nSocketedItems, 3);
@@ -6887,31 +6800,11 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 		
 	nItemLevel = pItemData->dwItemLevel;
 
-	if (nItemLevel > 0)
-	{
-		if (nItemLevel >= 127)
-		{
-			nItemLevel = 127;
-		}
-	}
-	else
-	{
-		nItemLevel = 0;
-	}
+	nItemLevel = ITEMS_ClampBitstreamValue(nItemLevel, 127);
 	BITMANIP_Write(pBuffer, nItemLevel, 7);
 
 	nQuality = pItemData->dwQualityNo;
-	if (nQuality > 0)
-	{
-		if (nQuality >= 15)
-		{
-			nQuality = 15;
-		}
-	}
-	else
-	{
-		nQuality = 0;
-	}
+	nQuality = ITEMS_ClampBitstreamValue(nQuality, 15);
 	BITMANIP_Write(pBuffer, nQuality, 4);
 	
 	nItemType = ITEMS_GetItemType(pItem);
@@ -6929,17 +6822,7 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 	if (pItemTypesTxtRecord && pItemTypesTxtRecord->nVarInvGfx)
 	{
 		nInvGfx = pItemData->nInvGfxIdx;
-		if (nInvGfx > 0)
-		{
-			if (nInvGfx >= 7)
-			{
-				nInvGfx = 7;
-			}
-		}
-		else
-		{
-			nInvGfx = 0;
-		}
+		nInvGfx = ITEMS_ClampBitstreamValue(nInvGfx, 7);
 		BITMANIP_Write(pBuffer, nInvGfx, 3);
 	}
 
@@ -6956,17 +6839,7 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 
 	if (nAutoAffix)
 	{
-		if (nAutoAffix > 0)
-		{
-			if (nAutoAffix >= 2047)
-			{
-				nAutoAffix = 2047;
-			}
-		}
-		else
-		{
-			nAutoAffix = 0;
-		}
+		nAutoAffix = ITEMS_ClampBitstreamValue(nAutoAffix, 2047);
 		BITMANIP_Write(pBuffer, nAutoAffix, 11);
 	}
 
@@ -6976,17 +6849,7 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 	case ITEMQUAL_SUPERIOR:
 	{
 		nFileIndex = pItemData->dwFileIndex;
-		if (nFileIndex > 0)
-		{
-			if (nFileIndex >= 7)
-			{
-				nFileIndex = 7;
-			}
-		}
-		else
-		{
-			nFileIndex = 0;
-		}
+		nFileIndex = ITEMS_ClampBitstreamValue(nFileIndex, 7);
 		BITMANIP_Write(pBuffer, nFileIndex, 3);
 		break;
 	}
@@ -6996,31 +6859,11 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 		if (bServer || pItemData->dwItemFlags & IFLAG_IDENTIFIED)
 		{
 			nRarePrefix = pItemData->wRarePrefix;
-			if (nRarePrefix > 0)
-			{
-				if (nRarePrefix >= 255)
-				{
-					nRarePrefix = 255;
-				}
-			}
-			else
-			{
-				nRarePrefix = 0;
-			}
+			nRarePrefix = ITEMS_ClampBitstreamValue(nRarePrefix, 255);
 			BITMANIP_Write(pBuffer, nRarePrefix, 8);
 
 			nRareSuffix = pItemData->wRareSuffix;
-			if (nRareSuffix > 0)
-			{
-				if (nRareSuffix >= 255)
-				{
-					nRareSuffix = 255;
-				}
-			}
-			else
-			{
-				nRareSuffix = 0;
-			}
+			nRareSuffix = ITEMS_ClampBitstreamValue(nRareSuffix, 255);
 			BITMANIP_Write(pBuffer, nRareSuffix, 8);
 		}
 
@@ -7037,17 +6880,7 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 			{
 				BITMANIP_Write(pBuffer, 1, 1);
 
-				if (nMagicPrefix > 0)
-				{
-					if (nMagicPrefix >= 2047)
-					{
-						nMagicPrefix = 2047;
-					}
-				}
-				else
-				{
-					nMagicPrefix = 0;
-				}
+				nMagicPrefix = ITEMS_ClampBitstreamValue(nMagicPrefix, 2047);
 				BITMANIP_Write(pBuffer, nMagicPrefix, 11);
 			}
 			else
@@ -7060,17 +6893,7 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 				BITMANIP_Write(pBuffer, 1, 1);
 
 				nMagicSuffix = pItemData->wMagicSuffix[nCounter];
-				if (nMagicSuffix > 0)
-				{
-					if (nMagicSuffix >= 2047)
-					{
-						nMagicSuffix = 2047;
-					}
-				}
-				else
-				{
-					nMagicSuffix = 0;
-				}
+				nMagicSuffix = ITEMS_ClampBitstreamValue(nMagicSuffix, 2047);
 				BITMANIP_Write(pBuffer, nMagicSuffix, 11);
 			}
 			else
@@ -7089,31 +6912,11 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 		if (bServer || pItemData->dwItemFlags & IFLAG_IDENTIFIED)
 		{
 			nRarePrefix = pItemData->wRarePrefix;
-			if (nRarePrefix > 0)
-			{
-				if (nRarePrefix >= 255)
-				{
-					nRarePrefix = 255;
-				}
-			}
-			else
-			{
-				nRarePrefix = 0;
-			}
+			nRarePrefix = ITEMS_ClampBitstreamValue(nRarePrefix, 255);
 			BITMANIP_Write(pBuffer, nRarePrefix, 8);
 
 			nRareSuffix = pItemData->wRareSuffix;
-			if (nRareSuffix > 0)
-			{
-				if (nRareSuffix >= 255)
-				{
-					nRareSuffix = 255;
-				}
-			}
-			else
-			{
-				nRareSuffix = 0;
-			}
+			nRareSuffix = ITEMS_ClampBitstreamValue(nRareSuffix, 255);
 			BITMANIP_Write(pBuffer, nRareSuffix, 8);
 		}
 		break;
@@ -7128,32 +6931,11 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 				nMagicPrefix -= nMagicPrefixOffset;
 			}
 
-			if (nMagicPrefix > 0)
-			{
-				if (nMagicPrefix >= 2047)
-				{
-					nMagicPrefix = 2047;
-				}
-			}
-			else
-			{
-				nMagicPrefix = 0;
-			}
+			nMagicPrefix = ITEMS_ClampBitstreamValue(nMagicPrefix, 2047);
 			BITMANIP_Write(pBuffer, nMagicPrefix, 11);
 
 			nMagicSuffix = pItemData->wMagicSuffix[0];
-			if (nMagicSuffix > 0)
-			{
-				if (nMagicSuffix >= 2047)
-				{
-					nMagicSuffix = 2047;
-				}
-
-			}
-			else
-			{
-				nMagicSuffix = 0;
-			}
+			nMagicSuffix = ITEMS_ClampBitstreamValue(nMagicSuffix, 2047);
 			BITMANIP_Write(pBuffer, nMagicSuffix, 11);
 		}
 		break;
@@ -7195,68 +6977,26 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 
 			if (nMagicPrefix)
 			{
-				if (nMagicPrefix > 0)
-				{
-					if (nMagicPrefix >= 2047)
-					{
-						nMagicPrefix = 2047;
-					}
-					BITMANIP_Write(pBuffer, nMagicPrefix, 11);
-				}
-				else
-				{
-					BITMANIP_Write(pBuffer, 0, 11);
-				}
+				BITMANIP_Write(pBuffer, ITEMS_ClampBitstreamValue(nMagicPrefix, 2047), 11);
 			}
 			else
 			{
 				nMagicSuffix = pItemData->wMagicSuffix[0];
-				if (nMagicSuffix > 0)
-				{
-					if (nMagicSuffix >= 2047)
-					{
-						nMagicSuffix = 2047;
-					}
-					BITMANIP_Write(pBuffer, nMagicSuffix, 11);
-				}
-				else
-				{
-					BITMANIP_Write(pBuffer, 0, 11);
-				}
+				BITMANIP_Write(pBuffer, ITEMS_ClampBitstreamValue(nMagicSuffix, 2047), 11);
 			}
 		}
 
 		if (ITEMS_CheckItemTypeId(pItem, ITEMTYPE_BODY_PART) && !ITEMS_CheckItemTypeId(pItem, ITEMTYPE_PLAYER_BODY_PART))
 		{
 			nFileIndex = pItemData->dwFileIndex;
-			if (nFileIndex > 0)
-			{
-				if (nFileIndex >= 1023)
-				{
-					nFileIndex = 1023;
-				}
-			}
-			else
-			{
-				nFileIndex = 0;
-			}
+			nFileIndex = ITEMS_ClampBitstreamValue(nFileIndex, 1023);
 			BITMANIP_Write(pBuffer, nFileIndex, 10);
 		}
 
 		if (ITEMS_CheckItemTypeId(pItem, ITEMTYPE_SCROLL) || ITEMS_CheckItemTypeId(pItem, ITEMTYPE_BOOK))
 		{
 			nScrollType = pItemData->wMagicSuffix[0];
-			if (nScrollType > 0)
-			{
-				if (nScrollType >= 31)
-				{
-					nScrollType = 31;
-				}
-			}
-			else
-			{
-				nScrollType = 0;
-			}
+			nScrollType = ITEMS_ClampBitstreamValue(nScrollType, 31);
 			BITMANIP_Write(pBuffer, nScrollType, 5);
 		}
 		break;
@@ -7274,54 +7014,24 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 			nRunewordId = -1;
 		}
 
-		if (nRunewordId > 0)
-		{
-			if (nRunewordId >= 65535)
-			{
-				nRunewordId = 65535;
-			}
-		}
-		else
-		{
-			nRunewordId = 0;
-		}
+		nRunewordId = ITEMS_ClampBitstreamValue(nRunewordId, 65535);
 		BITMANIP_Write(pBuffer, nRunewordId, 16);
 	}
 
 	if (pItemData->dwItemFlags & IFLAG_ISEAR)
 	{
 		nFileIndex = pItemData->dwFileIndex;
-		if (nFileIndex > 0)
-		{
-			if (nFileIndex >= 7)
-			{
-				nFileIndex = 7;
-			}
-		}
-		else
-		{
-			nFileIndex = 0;
-		}
+		nFileIndex = ITEMS_ClampBitstreamValue(nFileIndex, 7);
 		BITMANIP_Write(pBuffer, nFileIndex, 3);
 
 		nEarLevel = pItemData->nEarLvl;
-		if (nEarLevel > 0)
-		{
-			if (nEarLevel >= 127)
-			{
-				nEarLevel = 127;
-			}
-		}
-		else
-		{
-			nEarLevel = 0;
-		}
+		nEarLevel = ITEMS_ClampBitstreamValue(nEarLevel, 127);
 		BITMANIP_Write(pBuffer, nEarLevel, 7);
 
 		szPlayerName = pItemData->szPlayerName;
 		do
 		{
-			int nCurrentCharacter = D2Clamp<int>(int8_t(*szPlayerName), 0, 127);
+			int nCurrentCharacter = ITEMS_ClampBitstreamValue(int8_t(*szPlayerName), 127);
 			BITMANIP_Write(pBuffer, nCurrentCharacter, 7);
 		}
 		while (*szPlayerName++);
@@ -7331,7 +7041,7 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 		szPlayerName = pItemData->szPlayerName;
 		do
 		{
-			int nCurrentCharacter = D2Clamp<int>(int8_t(*szPlayerName), 0, 127);
+			int nCurrentCharacter = ITEMS_ClampBitstreamValue(int8_t(*szPlayerName), 127);
 			BITMANIP_Write(pBuffer, nCurrentCharacter, 7);
 		}
 		while (*szPlayerName++);

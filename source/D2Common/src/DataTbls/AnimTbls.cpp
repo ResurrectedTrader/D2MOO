@@ -114,8 +114,11 @@ void __stdcall DATATBLS_UnitAnimInfoDebugSet(D2UnitStrc* pUnit, int nAnimSpeed)
 	{
 		pRecord->dwAnimSpeed = nAnimSpeed;
 	}
+#if !(D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14)
+	// 1.14d: 0x0066AA20 has no halt (the jz at 0x0066AA66 only skips the store at 0x0066AA6B)
 	FOG_DisplayHalt("DataTablesUnitAnimInfoDebugSet", __FILE__, __LINE__);
 	exit(-1);
+#endif
 }
 
 //D2Common.0x6FD47700 (#10641)
