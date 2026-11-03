@@ -1,6 +1,6 @@
 #include <D2CommonTestDefines.h>
 
-#ifdef HORADRIC_CUBE_TESTS
+#ifdef HORADRICCUBE_TBLS_TESTS
 
 #include <doctest.h>
 
@@ -8,11 +8,69 @@
 
 #include <cstdarg>
 #include <filesystem>
+#include <string>
 
 #include <TestDefinitions.h>
 #include <TestUtilities.h>
 
+#include <D2DataTbls.h>
 #include <DataTbls/HoradricCube.h>
+#include <Fog.h>
+
+#include <Fixtures/DataTbls/Fixtures.h>
+
+
+namespace
+{
+	// Allocates empty linkers for item codes, item types and set items in both data tables, and no unique items linker
+	struct LinkersScope
+	{
+		D2DataTablesStrc* original_data_tables;
+		D2DataTablesStrc moo_previous{};
+		D2DataTablesStrc original_previous{};
+		void* pItemsLinker;
+		void* pItemTypesLinker;
+		void* pSetItemsLinker;
+
+		explicit LinkersScope(uintptr_t dll_base)
+			: original_data_tables(reinterpret_cast<D2DataTablesStrc*>(dll_base + 0x000A9608))
+		{
+			pItemsLinker = FOG_AllocLinker(__FILE__, __LINE__);
+			pItemTypesLinker = FOG_AllocLinker(__FILE__, __LINE__);
+			pSetItemsLinker = FOG_AllocLinker(__FILE__, __LINE__);
+
+			for (D2DataTablesStrc* pDataTables : { sgptDataTables, original_data_tables })
+			{
+				D2DataTablesStrc& previous = pDataTables == sgptDataTables ? moo_previous : original_previous;
+				previous.pItemsLinker = pDataTables->pItemsLinker;
+				previous.pItemTypesLinker = pDataTables->pItemTypesLinker;
+				previous.pUniqueItemsLinker = pDataTables->pUniqueItemsLinker;
+				previous.pSetItemsLinker = pDataTables->pSetItemsLinker;
+
+				pDataTables->pItemsLinker = static_cast<D2TxtLinkStrc*>(pItemsLinker);
+				pDataTables->pItemTypesLinker = static_cast<D2TxtLinkStrc*>(pItemTypesLinker);
+				pDataTables->pUniqueItemsLinker = nullptr;
+				pDataTables->pSetItemsLinker = static_cast<D2TxtLinkStrc*>(pSetItemsLinker);
+			}
+		}
+
+		~LinkersScope()
+		{
+			for (D2DataTablesStrc* pDataTables : { sgptDataTables, original_data_tables })
+			{
+				const D2DataTablesStrc& previous = pDataTables == sgptDataTables ? moo_previous : original_previous;
+				pDataTables->pItemsLinker = previous.pItemsLinker;
+				pDataTables->pItemTypesLinker = previous.pItemTypesLinker;
+				pDataTables->pUniqueItemsLinker = previous.pUniqueItemsLinker;
+				pDataTables->pSetItemsLinker = previous.pSetItemsLinker;
+			}
+
+			FOG_FreeLinker(pItemsLinker);
+			FOG_FreeLinker(pItemTypesLinker);
+			FOG_FreeLinker(pSetItemsLinker);
+		}
+	};
+}
 
 
 TEST_SUITE("HoradricCubeTests")
@@ -131,43 +189,63 @@ TEST_SUITE("HoradricCubeTests")
 		}
 	}
 	
-	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD52910" * doctest::skip(""))
+	TEST_CASE_FIXTURE(SetItemsTxtFixture<NoOpFixture>, "D2Common.0x6FD52910")
 	{
 		// Set up function pointers
 		const auto [sut, original] = make_function_pair(DATATBLS_CubeMainOutputParser, dll_base + 0x00012910);
-		
-		SUBCASE("")
+
+		// The parser looks the output up in the item code, item type, unique item and set item linkers; only set item names are linked
+		LinkersScope linkers(dll_base);
+		for (int i = 0; i < setitems_record_count; ++i)
 		{
+			FOG_10216_AddRecordToLinkingTable(linkers.pSetItemsLinker, setitems_txt[i].szName);
+		}
+
+		const auto check_output = [&](const std::string& szOutput)
+		{
+			CAPTURE(szOutput);
+
 			// Input data
 			D2CubeOutputItem moo_pCubeOutputParam{};
-			char moo_szOutput{};
+			char moo_szOutput[MAX_PATH]{};
 			D2CubeOutputItem original_pCubeOutputParam{};
-			char original_szOutput{};
-			int nTxtRow{};
-			int nItemId{};
+			char original_szOutput[MAX_PATH]{};
+			constexpr int nTxtRow = 0;
+			constexpr int nItemId = 0;
 
-			const auto setup_data = [](
-				D2CubeOutputItem& pCubeOutputParam,
-				char& szOutput
-			) {
-				// TODO: Setup as needed
-			};
-
-			setup_data(moo_pCubeOutputParam, moo_szOutput);
-			setup_data(original_pCubeOutputParam, original_szOutput);
+			strcpy_s(moo_szOutput, szOutput.c_str());
+			strcpy_s(original_szOutput, szOutput.c_str());
 
 			// Call both implementations
-			const auto moo_result = sut(&moo_pCubeOutputParam, &moo_szOutput, nTxtRow, nItemId);
-			const auto original_result = original(&original_pCubeOutputParam, &original_szOutput, nTxtRow, nItemId);
-			
+			const auto moo_result = sut(&moo_pCubeOutputParam, moo_szOutput, nTxtRow, nItemId);
+			const auto original_result = original(&original_pCubeOutputParam, original_szOutput, nTxtRow, nItemId);
+
 			// Compare return values
-			SKIP_MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
+			MOO_CHECK_EQ(moo_result, original_result, "Comparing results");
 
 			// Compare potentially modified input data
-			SKIP_MOO_CHECK_EQ(moo_pCubeOutputParam, original_pCubeOutputParam, "Comparing pCubeOutputParam");
-			SKIP_MOO_CHECK_EQ(moo_szOutput, original_szOutput, "Comparing szOutput");
+			MOO_CHECK_EQ(moo_pCubeOutputParam, original_pCubeOutputParam, "Comparing pCubeOutputParam");
+			MOO_CHECK_EQ(moo_szOutput, original_szOutput, "Comparing szOutput");
+		};
+
+		SUBCASE("Named outputs")
+		{
+			check_output("Cow Portal");
+			check_output("Cow Portal,qty=2");
+		}
+
+		SUBCASE("Set items")
+		{
+			for (int i = 0; i < setitems_record_count; ++i)
+			{
+				const std::string szName = setitems_txt[i].szName;
+				check_output(szName);
+				check_output(szName + ",mag");
+				check_output("\"" + szName + ",qty=3,pre=12\"");
+			}
 		}
 	}
+	
 	
 	TEST_CASE_FIXTURE(NoOpFixture, "D2Common.0x6FD52FC0" * doctest::skip(""))
 	{
