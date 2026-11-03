@@ -508,6 +508,7 @@ int __fastcall PATH_ComputePathClassicMissile(D2DynamicPathStrc* pDynamicPath, D
 	int nOldY = 0;
 	char szText[256] = {};
 	D2_MAYBE_UNUSED(szText);
+	D2_MAYBE_UNUSED(pUnit);
 
 	D2CoordStrc pCoords = {};
 
@@ -530,7 +531,15 @@ int __fastcall PATH_ComputePathClassicMissile(D2DynamicPathStrc* pDynamicPath, D
 		nXDistance = -nXDistance;
 	}
 
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+	// 1.14d: 0x00649377 (cmp eax, 64h; jge) - a target this far away yields no path instead of a fatal assert
+	if (nXDistance >= 100)
+	{
+		return 0;
+	}
+#else
 	D2_ASSERTM(nXDistance < 100, FOG_csprintf(szText, "Missile Firing too far : %d", pUnit ? pUnit->dwClassId : -1));
+#endif
 
 	nYDistance = nOldY - pDynamicPath->tTargetCoord.Y;
 	if (nYDistance < 0)
@@ -538,7 +547,15 @@ int __fastcall PATH_ComputePathClassicMissile(D2DynamicPathStrc* pDynamicPath, D
 		nYDistance = -nYDistance;
 	}
 
+#if D2_VERSION_MAJOR >= 1 && D2_VERSION_MINOR >= 14
+	// 1.14d: 0x0064938C, as above for the Y distance
+	if (nYDistance >= 100)
+	{
+		return 0;
+	}
+#else
 	D2_ASSERTM(nYDistance < 100, FOG_csprintf(szText, "Missile Firing too far : %d", pUnit ? pUnit->dwClassId : -1));
+#endif
 
 	if (pDynamicPath->tTargetCoord.X && pDynamicPath->tTargetCoord.Y)
 	{
