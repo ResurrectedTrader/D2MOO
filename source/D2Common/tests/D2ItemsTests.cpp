@@ -5238,6 +5238,15 @@ TEST_SUITE("D2ItemsTests")
 			check_serialize(nAmulet, IFLAG_RUNEWORD, 1, INVPAGE_INVENTORY);
 		}
 
+		SUBCASE("Complete inventory pages")
+		{
+			for (int nInvPage = 0; nInvPage <= UINT8_MAX; ++nInvPage)
+			{
+				CAPTURE(nInvPage);
+				check_serialize(nAmulet, 0, 1, (uint8_t)nInvPage);
+			}
+		}
+
 		SUBCASE("Compact inventory pages")
 		{
 			for (int nInvPage = 0; nInvPage <= UINT8_MAX; ++nInvPage)
