@@ -246,7 +246,7 @@ struct D2SkillsTxt
 	uint16_t wItemCltEffect;				//0x16C
 	uint16_t pad0x16E;						//0x16E
 	uint32_t dwSkPoints;					//0x170
-	uint16_t wReqLevel;						//0x174
+	int16_t wReqLevel;						//0x174
 	uint16_t wReqStr;						//0x176
 	uint16_t wReqDex;						//0x178
 	uint16_t wReqInt;						//0x17A
