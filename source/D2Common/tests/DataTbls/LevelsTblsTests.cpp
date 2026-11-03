@@ -638,7 +638,7 @@ TEST_SUITE("LevelsTblsTests")
 
 		constexpr uint32_t dwAutomapLevelType = 1;
 		constexpr uint32_t dwAutomapTileType = 0;
-		constexpr int nStyle = 45;
+		constexpr char nStyle = 45;
 
 		// automap.txt writes an open-ended sequence range as EndSequence -1; a Style or StartSequence of -1 is a wildcard
 		const auto make_row = [&](char nRowStyle, char nStartSequence, char nEndSequence)
@@ -661,6 +661,9 @@ TEST_SUITE("LevelsTblsTests")
 			make_row(nStyle, static_cast<char>(0x80), -1),
 			make_row(nStyle, 7, 20),
 			make_row(-1, -1, 0),
+			// Styles from 128 up are stored as negative chars but compared zero-extended
+			make_row(static_cast<char>(0x80), 0, 20),
+			make_row(static_cast<char>(200), 0, 20),
 		};
 
 		const D2AutomapRandStrc moo_previous_rand = sgptDataTables->pAutoMapRand[dwAutomapLevelType];
@@ -680,17 +683,19 @@ TEST_SUITE("LevelsTblsTests")
 			sgptDataTables->pAutoMap = &moo_row;
 			original_data_tables->pAutoMap = &original_row;
 
+			for (const int nQueryStyle : { 45, 128, 200, -128 })
 			for (const int nSequence : { 0, 6, 7, 10, 20, 21, 127, 128, 200, 255 })
 			{
 				CAPTURE(nRow);
+				CAPTURE(nQueryStyle);
 				CAPTURE(nSequence);
 
 				sgptDataTables->pAutomapSeed = { 0, 666 };
 				*original_automap_seed = { 0, 666 };
 
 				// Call both implementations
-				const auto moo_result = sut(dwAutomapLevelType, dwAutomapTileType, nStyle, nSequence);
-				const auto original_result = original(dwAutomapLevelType, dwAutomapTileType, nStyle, nSequence);
+				const auto moo_result = sut(dwAutomapLevelType, dwAutomapTileType, nQueryStyle, nSequence);
+				const auto original_result = original(dwAutomapLevelType, dwAutomapTileType, nQueryStyle, nSequence);
 
 				// Compare return values
 				MOO_CHECK_EQ(moo_result, original_result, "Comparing results");

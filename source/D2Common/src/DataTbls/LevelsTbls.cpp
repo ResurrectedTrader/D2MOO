@@ -1177,13 +1177,10 @@ int __fastcall DATATBLS_GetAutomapCellId(uint32_t dwAutomapLevelType, uint32_t d
 	if (nStart < nEnd)
 	{
 		i = nStart;
-		// The style and sequence bytes compare unsigned (1.10f D2Common.0x6FD62DAB / 0x6FD62DBD / 0x6FD62DC8,
-		// 1.14d 0x0062006B / 0x0062007B / 0x00620082 movzx): 0xFF in Style / StartSequence is the wildcard, and an
-		// EndSequence of 0xFF (automap.txt -1, an open-ended range) is 255, not below every sequence.
 		while (sgptDataTables->pAutoMap[i].dwAutomapLevelType != dwAutomapLevelType
 			   || sgptDataTables->pAutoMap[i].dwAutomapTileType != dwAutomapTileType
-			   || (uint8_t)sgptDataTables->pAutoMap[i].nStyle != 0xFF && (uint8_t)sgptDataTables->pAutoMap[i].nStyle != nStyle
-			   || (uint8_t)sgptDataTables->pAutoMap[i].nStartSequence != 0xFF
+			   || sgptDataTables->pAutoMap[i].nStyle != -1 && (uint8_t)sgptDataTables->pAutoMap[i].nStyle != nStyle
+			   || sgptDataTables->pAutoMap[i].nStartSequence != -1
 			   && ((uint8_t)sgptDataTables->pAutoMap[i].nStartSequence > nSequence || (uint8_t)sgptDataTables->pAutoMap[i].nEndSequence < nSequence))
 		{
 			++i;
