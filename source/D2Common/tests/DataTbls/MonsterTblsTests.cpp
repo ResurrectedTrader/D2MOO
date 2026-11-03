@@ -495,6 +495,13 @@ TEST_SUITE("MonsterTblsTests")
 			make_row("Control", "BaseTC,mul=3,cs=2,cu=4"),
 			make_row("LongKey", "BaseTC,mulx=5"),
 			make_row("LongKeyQuoted", "\"BaseTC,cs=2,cux=1,cr=2\""),
+			make_row("LongKeyCs", "BaseTC,csx=1"),
+			make_row("LongKeyCr", "BaseTC,crx=1"),
+			make_row("LongKeyCm", "BaseTC,cmx=1"),
+			make_row("LongKeyCe", "BaseTC,cex=1"),
+			make_row("LongKeyCg", "BaseTC,cgx=1"),
+			make_row("LongKeyMa", "BaseTC,max=1"),
+			make_row("LongKeyMg", "BaseTC,mgx=1"),
 			make_row("EmptyValue", "BaseTC,cu=4,cu="),
 			make_row("EmptyValueFirst", "BaseTC,mul=,cs=2"),
 		};
