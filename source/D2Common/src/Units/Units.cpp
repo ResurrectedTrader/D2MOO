@@ -3781,9 +3781,9 @@ BOOL __stdcall UNITS_IsObjectInInteractRange(D2UnitStrc* pUnit, D2UnitStrc* pObj
 	{
 		if (nX1 >= nX - 2 && nX1 <= nSizeX2 + nX + 2 && nY1 >= nY - 2 && nY1 <= nSizeY2 + nY + 2)
 		{
-			nSizeY1 = UNITS_GetUnitSizeY(pUnit);
+			nSizeY1 = UNITS_GetUnitSizeX(pUnit);
 
-			if (nSizeY1 > 2)
+			if ((uint32_t)nSizeY1 > 2)
 			{
 				return TRUE;
 			}

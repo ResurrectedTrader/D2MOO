@@ -97,8 +97,8 @@ struct D2LevelsTxt
 	uint8_t nDrawEdges;					//0x09
 	uint16_t unk0x0A;					//0x0A
 	uint32_t dwWarpDist;				//0x0C
-	uint16_t wMonLvl[3];				//0x10
-	uint16_t wMonLvlEx[3];				//0x16
+	int16_t wMonLvl[3];				//0x10
+	int16_t wMonLvlEx[3];				//0x16
 	uint32_t dwMonDen[3];				//0x1C
 	uint8_t nMonUMin[3];				//0x28
 	uint8_t nMonUMax[3];				//0x2B
