@@ -6702,7 +6702,7 @@ void __fastcall ITEMS_SerializeItemComplete(D2UnitStrc* pItem, D2BitBufferStrc* 
 	int nStats = 0;
 	int nValue = 0;
 	int nGold = 0;
-	uint8_t nStorePage = 0;
+	int8_t nStorePage = 0;
 	BOOL bIsRuneword = FALSE;
 	BOOL bInvalid = FALSE;
 	D2CoordStrc pCoords = {};
